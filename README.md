@@ -12,7 +12,7 @@ go get github.com/golang/protobuf/proto
 
 Server: 
 
-protoc --go_out=plugins=grpc:server/countries countries.proto
+protoc --go_out=plugins=grpc:server/protocol protocol.proto
 
 Client: 
 
