@@ -2,24 +2,31 @@ from flask import Flask
 from flask import jsonify
 app = Flask(__name__)
 import grpc
-import countries_pb2
-import countries_pb2_grpc
-def obj_to_dict(obj):return obj.__dict__
-@app.route('/<countrie>')
-def countrie(countrie):
+import blob_pb2
+import blob_pb2_grpc
+
+@app.route('/test')
+def move():
     print("Start service")
     try:
       channel = grpc.insecure_channel('localhost:3000')
-      stub = countries_pb2_grpc.CountryStub(channel)
-      countryRequest = countries_pb2.CountryRequest(name=countrie)
-      countryResponse = stub.Search(countryRequest)
+      stub = blob_pb2_grpc.BlobStub(channel)
+      data = blob_pb2.Position()
+      data.x = 0
+      data.y = 0
+      blobRequest = blob_pb2.BlobRequest()
+      blobResponse = stub.Move(blobRequest)
+      print(blobResponse)
+      print("players: ", blobResponse.players.decode("utf-8"))
+      print("food: ", blobResponse.food.decode("utf-8"))
+
       return jsonify({
-          "name": countryResponse.name,
-          "alpha2Code": countryResponse.alpha2Code,
-          "capital": countryResponse.capital,
-          "subregion": countryResponse.subregion,
-          "population": countryResponse.population,
-          "nativeName": countryResponse.nativeName
+          "x": blobResponse.position.x,
+          "y": blobResponse.position.y,
+          "alive": blobResponse.alive,
+          "mass": blobResponse.mass,
+          "players": blobResponse.players.decode("utf-8"),
+          "food": blobResponse.food.decode("utf-8")
       })
     except Exception as e:
       print(e)
