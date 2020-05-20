@@ -1,5 +1,11 @@
 # agario
 
+## Add repository to GOPATH
+
+export GOPATH=<path_to_repo>
+export PATH=$PATH:/$GOPATH/bin
+
+
 ## Additional Packages:
 
 go get google.golang.org/grpc
