@@ -10,6 +10,8 @@ message InitRequest {
 }
 message InitResponse {
   string id = 1;
+  double x = 2;
+  double y = 3;
 }
 message MoveRequest {
   string id = 1;

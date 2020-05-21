@@ -18,7 +18,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='blob',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=b'\n\nblob.proto\x12\x04\x62lob\"\r\n\x0bInitRequest\"\x1a\n\x0cInitResponse\x12\n\n\x02id\x18\x01 \x01(\t\"/\n\x0bMoveRequest\x12\n\n\x02id\x18\x01 \x01(\t\x12\t\n\x01x\x18\x02 \x01(\x01\x12\t\n\x01y\x18\x03 \x01(\x01\"A\n\x0cMoveResponse\x12\t\n\x01x\x18\x01 \x01(\x01\x12\t\n\x01y\x18\x02 \x01(\x01\x12\r\n\x05\x61live\x18\x03 \x01(\x08\x12\x0c\n\x04mass\x18\x04 \x01(\x05\"%\n\rRegionRequest\x12\t\n\x01x\x18\x01 \x01(\x01\x12\t\n\x01y\x18\x02 \x01(\x01\"/\n\x0eRegionResponse\x12\x0f\n\x07players\x18\x01 \x01(\x0c\x12\x0c\n\x04\x66ood\x18\x02 \x01(\x0c\x32\x9f\x01\n\x04\x42lob\x12/\n\x04Init\x12\x11.blob.InitRequest\x1a\x12.blob.InitResponse\"\x00\x12/\n\x04Move\x12\x11.blob.MoveRequest\x1a\x12.blob.MoveResponse\"\x00\x12\x35\n\x06Region\x12\x13.blob.RegionRequest\x1a\x14.blob.RegionResponse\"\x00\x62\x06proto3'
+  serialized_pb=b'\n\nblob.proto\x12\x04\x62lob\"\r\n\x0bInitRequest\"0\n\x0cInitResponse\x12\n\n\x02id\x18\x01 \x01(\t\x12\t\n\x01x\x18\x02 \x01(\x01\x12\t\n\x01y\x18\x03 \x01(\x01\"/\n\x0bMoveRequest\x12\n\n\x02id\x18\x01 \x01(\t\x12\t\n\x01x\x18\x02 \x01(\x01\x12\t\n\x01y\x18\x03 \x01(\x01\"A\n\x0cMoveResponse\x12\t\n\x01x\x18\x01 \x01(\x01\x12\t\n\x01y\x18\x02 \x01(\x01\x12\r\n\x05\x61live\x18\x03 \x01(\x08\x12\x0c\n\x04mass\x18\x04 \x01(\x05\"%\n\rRegionRequest\x12\t\n\x01x\x18\x01 \x01(\x01\x12\t\n\x01y\x18\x02 \x01(\x01\"/\n\x0eRegionResponse\x12\x0f\n\x07players\x18\x01 \x01(\x0c\x12\x0c\n\x04\x66ood\x18\x02 \x01(\x0c\x32\x9f\x01\n\x04\x42lob\x12/\n\x04Init\x12\x11.blob.InitRequest\x1a\x12.blob.InitResponse\"\x00\x12/\n\x04Move\x12\x11.blob.MoveRequest\x1a\x12.blob.MoveResponse\"\x00\x12\x35\n\x06Region\x12\x13.blob.RegionRequest\x1a\x14.blob.RegionResponse\"\x00\x62\x06proto3'
 )
 
 
@@ -62,6 +62,20 @@ _INITRESPONSE = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='x', full_name='blob.InitResponse.x', index=1,
+      number=2, type=1, cpp_type=5, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='y', full_name='blob.InitResponse.y', index=2,
+      number=3, type=1, cpp_type=5, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -75,7 +89,7 @@ _INITRESPONSE = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=35,
-  serialized_end=61,
+  serialized_end=83,
 )
 
 
@@ -119,8 +133,8 @@ _MOVEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=63,
-  serialized_end=110,
+  serialized_start=85,
+  serialized_end=132,
 )
 
 
@@ -171,8 +185,8 @@ _MOVERESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=112,
-  serialized_end=177,
+  serialized_start=134,
+  serialized_end=199,
 )
 
 
@@ -209,8 +223,8 @@ _REGIONREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=179,
-  serialized_end=216,
+  serialized_start=201,
+  serialized_end=238,
 )
 
 
@@ -247,8 +261,8 @@ _REGIONRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=218,
-  serialized_end=265,
+  serialized_start=240,
+  serialized_end=287,
 )
 
 DESCRIPTOR.message_types_by_name['InitRequest'] = _INITREQUEST
@@ -309,8 +323,8 @@ _BLOB = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=268,
-  serialized_end=427,
+  serialized_start=290,
+  serialized_end=449,
   methods=[
   _descriptor.MethodDescriptor(
     name='Init',
