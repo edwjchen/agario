@@ -15,8 +15,13 @@ class BlobStub(object):
         """
         self.Move = channel.unary_unary(
                 '/blob.Blob/Move',
-                request_serializer=blob__pb2.BlobRequest.SerializeToString,
-                response_deserializer=blob__pb2.BlobResponse.FromString,
+                request_serializer=blob__pb2.MoveRequest.SerializeToString,
+                response_deserializer=blob__pb2.MoveResponse.FromString,
+                )
+        self.Region = channel.unary_unary(
+                '/blob.Blob/Region',
+                request_serializer=blob__pb2.RegionRequest.SerializeToString,
+                response_deserializer=blob__pb2.RegionResponse.FromString,
                 )
 
 
@@ -29,13 +34,24 @@ class BlobServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def Region(self, request, context):
+        """Missing associated documentation comment in .proto file"""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_BlobServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'Move': grpc.unary_unary_rpc_method_handler(
                     servicer.Move,
-                    request_deserializer=blob__pb2.BlobRequest.FromString,
-                    response_serializer=blob__pb2.BlobResponse.SerializeToString,
+                    request_deserializer=blob__pb2.MoveRequest.FromString,
+                    response_serializer=blob__pb2.MoveResponse.SerializeToString,
+            ),
+            'Region': grpc.unary_unary_rpc_method_handler(
+                    servicer.Region,
+                    request_deserializer=blob__pb2.RegionRequest.FromString,
+                    response_serializer=blob__pb2.RegionResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -58,7 +74,23 @@ class Blob(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/blob.Blob/Move',
-            blob__pb2.BlobRequest.SerializeToString,
-            blob__pb2.BlobResponse.FromString,
+            blob__pb2.MoveRequest.SerializeToString,
+            blob__pb2.MoveResponse.FromString,
+            options, channel_credentials,
+            call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Region(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/blob.Blob/Region',
+            blob__pb2.RegionRequest.SerializeToString,
+            blob__pb2.RegionResponse.FromString,
             options, channel_credentials,
             call_credentials, compression, wait_for_ready, timeout, metadata)

@@ -1,18 +1,26 @@
 syntax = "proto3";
 package blob;
 service Blob {
-  rpc Move (BlobRequest) returns (BlobResponse) {}
+  rpc Move (MoveRequest) returns (MoveResponse) {}
+  rpc Region (RegionRequest) returns (RegionResponse) {}
 }
-message BlobRequest {
+message MoveRequest {
   uint32 id = 1;
   double x = 2;
   double y = 3;
 }
-message BlobResponse {
+message MoveResponse {
   double x = 1;
   double y = 2;
   bool alive = 3;
   int32 mass = 4;
-  bytes players = 5;
-  bytes food = 6;
 }
+message RegionRequest {
+  double x = 1;
+  double y = 2;
+}
+message RegionResponse {
+  bytes players = 1;
+  bytes food = 2;
+}
+
