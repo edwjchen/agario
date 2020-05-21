@@ -57,12 +57,14 @@ class Camera:
 
 class Blob:
     def __init__(self,surface,name = ""):
-        self.startX = self.x = random.randint(100,400)
-        self.startY = self.y = random.randint(100,400)
-        self.mass = 20
+        initRequest = blob_pb2.InitRequest()
+        initResponse = stub.Init(initRequest)
+        self.startX = self.x = initResponse.x
+        self.startY = self.y = initResponse.y
+        self.mass = initResponse.mass
         self.surface = surface
         self.color = PLAYER_COLORS[random.randint(0,len(PLAYER_COLORS)-1)]
-        self.name = name
+        self.name = initResponse.id
         self.pieces = list()
         piece = Piece(surface,(self.x,self.y),self.color,self.mass,self.name)
 
@@ -79,26 +81,32 @@ class Blob:
     def move(self):
         dX,dY = pygame.mouse.get_pos()
         
-        print("start pos: ", dX, dY)
-        blobRequest = blob_pb2.BlobRequest()
-        blobRequest.x = dX
-        blobRequest.y = dY
-        blobResponse = stub.Move(blobRequest)
+        # print("start pos: ", dX, dY)
+        moveRequest = blob_pb2.MoveRequest()
+        moveRequest.id = self.name
+        moveRequest.x = dX
+        moveRequest.y = dY
+        moveResponse = stub.Move(moveRequest)
 
-        print("end pos: ", blobResponse.x, blobResponse.y)
-        self.x = blobResponse.x
-        self.y = blobResponse.y
+        # print("end pos: ", moveResponse.x, moveResponse.y)
+        self.x = moveResponse.x
+        self.y = moveResponse.y
 
     def draw(self,cam):
-        col = self.color
-        zoom = cam.zoom
-        x = cam.x
-        y = cam.y
-        pygame.draw.circle(self.surface,(col[0]-int(col[0]/3),int(col[1]-col[1]/3),int(col[2]-col[2]/3)),(int(self.x*zoom+x),int(self.y*zoom+y)),int((self.mass/2+3)*zoom))
-        pygame.draw.circle(self.surface,col,(int(self.x*cam.zoom+cam.x),int(self.y*cam.zoom+cam.y)),int(self.mass/2*zoom))
-        if(len(self.name) > 0):
-            fw, fh = font.size(self.name)
-            drawText(self.name, (self.x*cam.zoom+cam.x-int(fw/2),self.y*cam.zoom+cam.y-int(fh/2)),(50,50,50))
+        regionRequest = blob_pb2.RegionRequest()
+        regionResponse = stub.Region(regionRequest)
+        players = regionResponse.players
+        print(players)
+        for player in players:
+            col = self.color
+            zoom = cam.zoom
+            x = cam.x
+            y = cam.y
+            pygame.draw.circle(self.surface,(col[0]-int(col[0]/3),int(col[1]-col[1]/3),int(col[2]-col[2]/3)),(int(player.x*zoom+x),int(player.y*zoom+y)),int((player.mass/2+3)*zoom))
+            pygame.draw.circle(self.surface,col,(int(player.x*cam.zoom+cam.x),int(player.y*cam.zoom+cam.y)),int(player.mass/2*zoom))
+            if(len(player.id) > 0):
+                fw, fh = font.size(player.id)
+                drawText(player.id, (player.x*cam.zoom+cam.x-int(fw/2),player.y*cam.zoom+cam.y-int(fh/2)),(50,50,50))
 
 class Piece:
     def __init__(self,surface,pos,color,mass,name,transition=False):
@@ -162,7 +170,7 @@ while(True):
     blob.update()
     camera.zoom = 100/(blob.mass)+0.3
     camera.center(blob)
-    print(blob.x, blob.y)
+    # print(blob.x, blob.y)
     surface.fill((242,251,255))
     draw_grid()
 
