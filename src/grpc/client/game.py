@@ -1,8 +1,13 @@
+#imports for grpc
+import grpc
+import blob_pb2
+import blob_pb2_grpc
+
 import pygame,random,math
 
 pygame.init()
 PLAYER_COLORS = [(37,7,255),(35,183,253),(48,254,241),(19,79,251),(255,7,230),(255,7,23),(6,254,13)]
-CELL_COLORS = [(80,252,54),(36,244,255),(243,31,46),(4,39,243),(254,6,178),(255,211,7),(216,6,254),(145,255,7),(7,255,182),(255,6,86),(147,7,255)]
+FOOD_COLORS = [(80,252,54),(36,244,255),(243,31,46),(4,39,243),(254,6,178),(255,211,7),(216,6,254),(145,255,7),(7,255,182),(255,6,86),(147,7,255)]
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 500
@@ -18,8 +23,12 @@ big_font = pygame.font.SysFont('Ubuntu',24,True)
 
 pygame.display.set_caption("Agar.io")
 
-cell_list = list()
+food_list = list()
 clock = pygame.time.Clock()
+
+#grpc constants
+channel = grpc.insecure_channel('localhost:3000')
+stub = blob_pb2_grpc.BlobStub(channel)
 
 def drawText(message,pos,color=(255,255,255)):
     surface.blit(font.render(message,1,color),pos)
@@ -41,15 +50,12 @@ class Camera:
         self.height = SCREEN_HEIGHT
         self.zoom = 0.5
 
-    def centre(self,blobOrPos):
-        if(isinstance(blobOrPos,Player)):
-            p = blobOrPos
-            self.x = (p.startX-(p.x*self.zoom))-p.startX+((SCREEN_WIDTH/2))
-            self.y = (p.startY-(p.y*self.zoom))-p.startY+((SCREEN_HEIGHT/2))
-        elif(type(blobOrPos) == tuple):
-            self.x,self.y = blobOrPos
+    def center(self,blobOrPos):
+        p = blobOrPos
+        self.x = (p.startX-(p.x*self.zoom))-p.startX+((SCREEN_WIDTH/2))
+        self.y = (p.startY-(p.y*self.zoom))-p.startY+((SCREEN_HEIGHT/2))
 
-class Player:
+class Blob:
     def __init__(self,surface,name = ""):
         self.startX = self.x = random.randint(100,400)
         self.startY = self.y = random.randint(100,400)
@@ -65,26 +71,24 @@ class Player:
         self.collisionDetection()
 
     def collisionDetection(self):
-        for cell in cell_list:
-            if(getDistance((cell.x,cell.y),(self.x,self.y)) <= self.mass/2):
+        for food in food_list:
+            if(getDistance((food.x,food.y),(self.x,self.y)) <= self.mass/2):
                 self.mass+=0.5
-                cell_list.remove(cell)
+                food_list.remove(food)
 
     def move(self):
         dX,dY = pygame.mouse.get_pos()
-        rotation = math.atan2(dY-(float(SCREEN_HEIGHT)/2),dX-(float(SCREEN_WIDTH)/2))*180/math.pi
-        speed = 4
-        vx = speed * (90-math.fabs(rotation))/90
-        vy = 0
-        if(rotation < 0):
-            vy = -speed + math.fabs(vx)
-        else:
-            vy = speed - math.fabs(vx)
-        self.x += vx
-        self.y += vy
+        data = blob_pb2.Position()
+        data.x = dX
+        data.y = dY
 
-    def feed(self):
-        pass
+        print("start pos: ", dX, dY)
+        blobRequest = blob_pb2.BlobRequest()
+        blobResponse = stub.Move(blobRequest)
+        
+        print("end pos: ", blobResponse.position.x, blobResponse.position.y)
+        self.x += blobResponse.position.x
+        self.y += blobResponse.position.y
 
     def draw(self,cam):
         col = self.color
@@ -108,21 +112,21 @@ class Piece:
     def draw(self):
         pass
 
-class Cell:
+class Food:
     def __init__(self,surface):
         self.x = random.randint(20,1980)
         self.y = random.randint(20,1980)
         self.mass = 7
         self.surface = surface
-        self.color = CELL_COLORS[random.randint(0,len(CELL_COLORS)-1)]
+        self.color = FOOD_COLORS[random.randint(0,len(FOOD_COLORS)-1)]
 
     def draw(self,cam):
         pygame.draw.circle(self.surface,self.color,(int((self.x*cam.zoom+cam.x)),int(self.y*cam.zoom+cam.y)),int(self.mass*cam.zoom))
 
-def spawn_cells(numOfCells):
-    for i in range(numOfCells):
-        cell = Cell(surface)
-        cell_list.append(cell)
+def spawn_foods(numOfFoods):
+    for i in range(numOfFoods):
+        food = Food(surface)
+        food_list.append(food)
 
 def draw_grid():
     for i in range(0,2001,25):
@@ -146,10 +150,9 @@ def draw_HUD():
     drawText("Score: " + str(int(blob.mass*2)),(10,SCREEN_HEIGHT-30))
 
 
-
 camera = Camera()
-blob = Player(surface,"Viliami")
-spawn_cells(2000)
+blob = Blob(surface,"Viliami")
+spawn_foods(2000)
 
 while(True):
     clock.tick(70)
@@ -159,11 +162,12 @@ while(True):
             quit()
     blob.update()
     camera.zoom = 100/(blob.mass)+0.3
-    camera.centre(blob)
+    camera.center(blob)
+    print(blob.x, blob.y)
     surface.fill((242,251,255))
     draw_grid()
 
-    for c in cell_list:
+    for c in food_list:
         c.draw(camera)
     blob.draw(camera)
 

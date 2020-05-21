@@ -6,6 +6,7 @@ import (
   "log"
   "net"
   // "net/http"
+  "math"
   "golang.org/x/net/context"
   "google.golang.org/grpc"
 )
@@ -22,20 +23,34 @@ func main() {
 }
 // Server is implementation proto interface
 type Server struct{}
+
+const SCREEN_WIDTH = 800
+const SCREEN_HEIGHT = 500
+const speed = 4
+
 // Search function responsible to get the Country information
 func (Server) Move(ctx context.Context, request *blob.BlobRequest) (*blob.BlobResponse, error) {
   //for now just echo response with increment on position
   x := request.Position.GetX()
   y := request.Position.GetY()
-  x++
-  y++
-  newPos := blob.Position{X: x, Y: y}
+
+  rotation := math.Atan2(dY - SCREEN_HEIGHT / 2,dX - SCREEN_HEIGHT / 2) * 180 / math.Pi
+  vx := speed * (90 - math.Abs(rotation)) / 90
+  var vy float64
+  if rotation < 0 {
+    vy = -1 * speed + math.Abs(vx)
+  } else {
+    vy = speed  - math.Abs(vx)
+  }
+
+  newPos := blob.Position{X: x + vx, Y: y + vy}
   response := blob.BlobResponse{
     Position: &newPos,
     Alive: true,
     Mass: 0,
     Players: make([]byte, 0),
-    Food: make([]byte, 0)}
+    Food: make([]byte, 0),
+  }
 
   return &response, nil
 }
