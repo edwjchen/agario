@@ -39,7 +39,7 @@ const MIN_FOOD_NUM = 800
 
 type FoodInfo struct {
   foodTree *quadtree.Quadtree
-  foodMap map[orb.Pointer] bool
+  foodMap map[*blob.Food] bool
   mux sync.Mutex
 }
 
@@ -48,14 +48,11 @@ var foodInfo FoodInfo
 func (f *FoodInfo) InitFood() {
   // TODO change to map
   f.mux.Lock()
-  f.foodMap = make(map[orb.Pointer]bool)
+  f.foodMap = make(map[*blob.Food]bool)
   f.foodTree = quadtree.New(orb.Bound{Min: orb.Point{0, 0}, Max: orb.Point{SCREEN_WIDTH, SCREEN_HEIGHT}})
   f.mux.Unlock()
 
-  for i := 0; i < 1000; i++ {
-    log.Println(i)
-    f.SpawnFood()
-  }
+  f.SpawnFood()
 }
 
 // Doesn't spawn food if not needed
@@ -67,19 +64,27 @@ func (f *FoodInfo) SpawnFood() {
   }
 
   for i := 0 ; i < MIN_FOOD_NUM - len(f.foodMap) ; i++ {
-    foodPoint := orb.Point{rand.Float64() * SCREEN_WIDTH, rand.Float64() * SCREEN_HEIGHT}
+    x := rand.Float64() * SCREEN_WIDTH
+    y := rand.Float64() * SCREEN_HEIGHT
+    
+    foodPoint := orb.Point{x, y}
+    food := &blob.Food{X: x, Y: y}
+    
     f.foodTree.Add(foodPoint) 
-    f.foodMap[foodPoint] = true
+    f.foodMap[food] = true
   }
 }
 
-func (f *FoodInfo) removeFood(food orb.Pointer) {
-  f.foodTree.Remove(food, nil)
+func (f *FoodInfo) removeFood(foodPointer orb.Pointer) {
+  f.foodTree.Remove(foodPointer, nil)
+
+  foodPoint := foodPointer.Point()
+  food := &blob.Food{X: foodPoint.X(), Y: foodPoint.Y()}
   delete(f.foodMap, food)
 }
 
 // Returns number of foods eaten by player
-func (f *FoodInfo) GetPlayerEaten(player *blob.Player) int {
+func (f *FoodInfo) GetNumFoodsEaten(player *blob.Player) int32 {
   // Delegate to removeFood
   // Get rectangular bound around player
 
@@ -93,7 +98,21 @@ func (f *FoodInfo) GetPlayerEaten(player *blob.Player) int {
     f.removeFood(food)
   }
 
-  return len(foodSlice)
+  return int32(len(foodSlice))
+}
+
+func (f *FoodInfo) GetFoods() []*blob.Food {
+  f.mux.Lock()
+  defer f.mux.Unlock()
+
+  foodSlice := make([]*blob.Food, len(f.foodMap))
+  idx := 0
+  for food := range f.foodMap {
+    foodSlice[idx] = food
+    idx++
+  }
+
+  return foodSlice
 }
 
 type BlobsInfo struct {
@@ -152,6 +171,18 @@ func (b *BlobsInfo) GetBlobs() []*blob.Player {
   return retBlobs 
 }
 
+// Returns update mass of blob
+func (b * BlobsInfo) UpdateBlobMass(id string) int32 {
+  b.mux.Lock()
+  defer b.mux.Unlock()
+
+  player := b.blobs[id]
+  oldMass := player.Mass
+  newMass := oldMass + foodInfo.GetNumFoodsEaten(player)
+  b.blobs[id].Mass = newMass
+
+  return newMass
+}
 
 const STARTING_MASS = 20
 const SERVER_ID = "server1::"
@@ -193,12 +224,13 @@ func (Server) Move(ctx context.Context, request *blob.MoveRequest) (*blob.MoveRe
 
   // log.Println("send: ", x+vx, y+vy)
   x, y := blobsInfo.UpdatePos(blobId, vx, vy)
+  newMass := blobsInfo.UpdateBlobMass(blobId)
 
   response := blob.MoveResponse {
     X: x,
     Y: y,
     Alive: true,
-    Mass: 0,
+    Mass: newMass,
   }
 
   return &response, nil
@@ -211,7 +243,7 @@ func (Server) Region(ctx context.Context, request *blob.RegionRequest) (*blob.Re
 
   response := blob.RegionResponse {
     Players: blobsInfo.GetBlobs(),
-    Foods: make([]*blob.Food, 0),
+    Foods: foodInfo.GetFoods(),
   }
 
   return &response, nil
