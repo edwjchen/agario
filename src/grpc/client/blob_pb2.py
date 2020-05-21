@@ -18,7 +18,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='blob',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=b'\n\nblob.proto\x12\x04\x62lob\"#\n\x0b\x42lobRequest\x12\t\n\x01x\x18\x01 \x01(\x01\x12\t\n\x01y\x18\x02 \x01(\x01\"`\n\x0c\x42lobResponse\x12\t\n\x01x\x18\x01 \x01(\x01\x12\t\n\x01y\x18\x02 \x01(\x01\x12\r\n\x05\x61live\x18\x03 \x01(\x08\x12\x0c\n\x04mass\x18\x04 \x01(\x05\x12\x0f\n\x07players\x18\x05 \x01(\x0c\x12\x0c\n\x04\x66ood\x18\x06 \x01(\x0c\x32\x37\n\x04\x42lob\x12/\n\x04Move\x12\x11.blob.BlobRequest\x1a\x12.blob.BlobResponse\"\x00\x62\x06proto3'
+  serialized_pb=b'\n\nblob.proto\x12\x04\x62lob\"/\n\x0b\x42lobRequest\x12\n\n\x02id\x18\x01 \x01(\r\x12\t\n\x01x\x18\x02 \x01(\x01\x12\t\n\x01y\x18\x03 \x01(\x01\"`\n\x0c\x42lobResponse\x12\t\n\x01x\x18\x01 \x01(\x01\x12\t\n\x01y\x18\x02 \x01(\x01\x12\r\n\x05\x61live\x18\x03 \x01(\x08\x12\x0c\n\x04mass\x18\x04 \x01(\x05\x12\x0f\n\x07players\x18\x05 \x01(\x0c\x12\x0c\n\x04\x66ood\x18\x06 \x01(\x0c\x32\x37\n\x04\x42lob\x12/\n\x04Move\x12\x11.blob.BlobRequest\x1a\x12.blob.BlobResponse\"\x00\x62\x06proto3'
 )
 
 
@@ -32,15 +32,22 @@ _BLOBREQUEST = _descriptor.Descriptor(
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='x', full_name='blob.BlobRequest.x', index=0,
-      number=1, type=1, cpp_type=5, label=1,
+      name='id', full_name='blob.BlobRequest.id', index=0,
+      number=1, type=13, cpp_type=3, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='x', full_name='blob.BlobRequest.x', index=1,
+      number=2, type=1, cpp_type=5, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='y', full_name='blob.BlobRequest.y', index=1,
-      number=2, type=1, cpp_type=5, label=1,
+      name='y', full_name='blob.BlobRequest.y', index=2,
+      number=3, type=1, cpp_type=5, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -58,7 +65,7 @@ _BLOBREQUEST = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=20,
-  serialized_end=55,
+  serialized_end=67,
 )
 
 
@@ -123,8 +130,8 @@ _BLOBRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=57,
-  serialized_end=153,
+  serialized_start=69,
+  serialized_end=165,
 )
 
 DESCRIPTOR.message_types_by_name['BlobRequest'] = _BLOBREQUEST
@@ -153,8 +160,8 @@ _BLOB = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=155,
-  serialized_end=210,
+  serialized_start=167,
+  serialized_end=222,
   methods=[
   _descriptor.MethodDescriptor(
     name='Move',

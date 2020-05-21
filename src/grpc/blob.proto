@@ -4,8 +4,9 @@ service Blob {
   rpc Move (BlobRequest) returns (BlobResponse) {}
 }
 message BlobRequest {
-  double x = 1;
-  double y = 2;
+  uint32 id = 1;
+  double x = 2;
+  double y = 3;
 }
 message BlobResponse {
   double x = 1;
