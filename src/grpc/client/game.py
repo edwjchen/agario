@@ -33,6 +33,7 @@ channel = grpc.insecure_channel('localhost:3000')
 stub = blob_pb2_grpc.BlobStub(channel)
 
 def drawText(message,pos,color=(255,255,255)):
+    pos = (int(pos[0]), int(pos[1]))
     surface.blit(font.render(message,1,color),pos)
 
 # Gets euclidean distance between two positions
@@ -156,8 +157,8 @@ def spawn_foods(numOfFoods):
 
 def draw_grid():
     for i in range(0,2001,25):
-        pygame.draw.line(surface,(230,240,240),(0+camera.x,i*camera.zoom+camera.y),(2001*camera.zoom+camera.x,i*camera.zoom+camera.y),3)
-        pygame.draw.line(surface,(230,240,240),(i*camera.zoom+camera.x,0+camera.y),(i*camera.zoom+camera.x,2001*camera.zoom+camera.y),3)
+        pygame.draw.line(surface,(230,240,240),(int(0+camera.x),int(i*camera.zoom+camera.y)),(int(2001*camera.zoom+camera.x),int(i*camera.zoom+camera.y)),3)
+        pygame.draw.line(surface,(230,240,240),(int(i*camera.zoom+camera.x),int(+camera.y)),(int(i*camera.zoom+camera.x),int(2001*camera.zoom+camera.y)),3)
 
 def draw_leaderboard(leaders):
     LEADERBOARD_X_INSET = 157
