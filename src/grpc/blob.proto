@@ -3,17 +3,15 @@ package blob;
 service Blob {
   rpc Move (BlobRequest) returns (BlobResponse) {}
 }
-message Position {
-  int32 x = 1;
-  int32 y = 2;
-}
 message BlobRequest {
-  Position position = 1;
+  double x = 1;
+  double y = 2;
 }
 message BlobResponse {
-  Position position = 1;
-  bool alive = 2;
-  int32 mass = 3;
-  bytes players = 4;
-  bytes food = 5;
+  double x = 1;
+  double y = 2;
+  bool alive = 3;
+  int32 mass = 4;
+  bytes players = 5;
+  bytes food = 6;
 }
