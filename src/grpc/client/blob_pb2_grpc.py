@@ -13,6 +13,11 @@ class BlobStub(object):
         Args:
             channel: A grpc.Channel.
         """
+        self.Init = channel.unary_unary(
+                '/blob.Blob/Init',
+                request_serializer=blob__pb2.InitRequest.SerializeToString,
+                response_deserializer=blob__pb2.InitResponse.FromString,
+                )
         self.Move = channel.unary_unary(
                 '/blob.Blob/Move',
                 request_serializer=blob__pb2.MoveRequest.SerializeToString,
@@ -27,6 +32,12 @@ class BlobStub(object):
 
 class BlobServicer(object):
     """Missing associated documentation comment in .proto file"""
+
+    def Init(self, request, context):
+        """Missing associated documentation comment in .proto file"""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def Move(self, request, context):
         """Missing associated documentation comment in .proto file"""
@@ -43,6 +54,11 @@ class BlobServicer(object):
 
 def add_BlobServicer_to_server(servicer, server):
     rpc_method_handlers = {
+            'Init': grpc.unary_unary_rpc_method_handler(
+                    servicer.Init,
+                    request_deserializer=blob__pb2.InitRequest.FromString,
+                    response_serializer=blob__pb2.InitResponse.SerializeToString,
+            ),
             'Move': grpc.unary_unary_rpc_method_handler(
                     servicer.Move,
                     request_deserializer=blob__pb2.MoveRequest.FromString,
@@ -62,6 +78,22 @@ def add_BlobServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class Blob(object):
     """Missing associated documentation comment in .proto file"""
+
+    @staticmethod
+    def Init(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/blob.Blob/Init',
+            blob__pb2.InitRequest.SerializeToString,
+            blob__pb2.InitResponse.FromString,
+            options, channel_credentials,
+            call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def Move(request,

@@ -18,10 +18,65 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='blob',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=b'\n\nblob.proto\x12\x04\x62lob\"/\n\x0bMoveRequest\x12\n\n\x02id\x18\x01 \x01(\r\x12\t\n\x01x\x18\x02 \x01(\x01\x12\t\n\x01y\x18\x03 \x01(\x01\"A\n\x0cMoveResponse\x12\t\n\x01x\x18\x01 \x01(\x01\x12\t\n\x01y\x18\x02 \x01(\x01\x12\r\n\x05\x61live\x18\x03 \x01(\x08\x12\x0c\n\x04mass\x18\x04 \x01(\x05\"%\n\rRegionRequest\x12\t\n\x01x\x18\x01 \x01(\x01\x12\t\n\x01y\x18\x02 \x01(\x01\"/\n\x0eRegionResponse\x12\x0f\n\x07players\x18\x01 \x01(\x0c\x12\x0c\n\x04\x66ood\x18\x02 \x01(\x0c\x32n\n\x04\x42lob\x12/\n\x04Move\x12\x11.blob.MoveRequest\x1a\x12.blob.MoveResponse\"\x00\x12\x35\n\x06Region\x12\x13.blob.RegionRequest\x1a\x14.blob.RegionResponse\"\x00\x62\x06proto3'
+  serialized_pb=b'\n\nblob.proto\x12\x04\x62lob\"\r\n\x0bInitRequest\"\x1a\n\x0cInitResponse\x12\n\n\x02id\x18\x01 \x01(\t\"/\n\x0bMoveRequest\x12\n\n\x02id\x18\x01 \x01(\t\x12\t\n\x01x\x18\x02 \x01(\x01\x12\t\n\x01y\x18\x03 \x01(\x01\"A\n\x0cMoveResponse\x12\t\n\x01x\x18\x01 \x01(\x01\x12\t\n\x01y\x18\x02 \x01(\x01\x12\r\n\x05\x61live\x18\x03 \x01(\x08\x12\x0c\n\x04mass\x18\x04 \x01(\x05\"%\n\rRegionRequest\x12\t\n\x01x\x18\x01 \x01(\x01\x12\t\n\x01y\x18\x02 \x01(\x01\"/\n\x0eRegionResponse\x12\x0f\n\x07players\x18\x01 \x01(\x0c\x12\x0c\n\x04\x66ood\x18\x02 \x01(\x0c\x32\x9f\x01\n\x04\x42lob\x12/\n\x04Init\x12\x11.blob.InitRequest\x1a\x12.blob.InitResponse\"\x00\x12/\n\x04Move\x12\x11.blob.MoveRequest\x1a\x12.blob.MoveResponse\"\x00\x12\x35\n\x06Region\x12\x13.blob.RegionRequest\x1a\x14.blob.RegionResponse\"\x00\x62\x06proto3'
 )
 
 
+
+
+_INITREQUEST = _descriptor.Descriptor(
+  name='InitRequest',
+  full_name='blob.InitRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=20,
+  serialized_end=33,
+)
+
+
+_INITRESPONSE = _descriptor.Descriptor(
+  name='InitResponse',
+  full_name='blob.InitResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='id', full_name='blob.InitResponse.id', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=35,
+  serialized_end=61,
+)
 
 
 _MOVEREQUEST = _descriptor.Descriptor(
@@ -33,8 +88,8 @@ _MOVEREQUEST = _descriptor.Descriptor(
   fields=[
     _descriptor.FieldDescriptor(
       name='id', full_name='blob.MoveRequest.id', index=0,
-      number=1, type=13, cpp_type=3, label=1,
-      has_default_value=False, default_value=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
@@ -64,8 +119,8 @@ _MOVEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=20,
-  serialized_end=67,
+  serialized_start=63,
+  serialized_end=110,
 )
 
 
@@ -116,8 +171,8 @@ _MOVERESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=69,
-  serialized_end=134,
+  serialized_start=112,
+  serialized_end=177,
 )
 
 
@@ -154,8 +209,8 @@ _REGIONREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=136,
-  serialized_end=173,
+  serialized_start=179,
+  serialized_end=216,
 )
 
 
@@ -192,15 +247,31 @@ _REGIONRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=175,
-  serialized_end=222,
+  serialized_start=218,
+  serialized_end=265,
 )
 
+DESCRIPTOR.message_types_by_name['InitRequest'] = _INITREQUEST
+DESCRIPTOR.message_types_by_name['InitResponse'] = _INITRESPONSE
 DESCRIPTOR.message_types_by_name['MoveRequest'] = _MOVEREQUEST
 DESCRIPTOR.message_types_by_name['MoveResponse'] = _MOVERESPONSE
 DESCRIPTOR.message_types_by_name['RegionRequest'] = _REGIONREQUEST
 DESCRIPTOR.message_types_by_name['RegionResponse'] = _REGIONRESPONSE
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
+
+InitRequest = _reflection.GeneratedProtocolMessageType('InitRequest', (_message.Message,), {
+  'DESCRIPTOR' : _INITREQUEST,
+  '__module__' : 'blob_pb2'
+  # @@protoc_insertion_point(class_scope:blob.InitRequest)
+  })
+_sym_db.RegisterMessage(InitRequest)
+
+InitResponse = _reflection.GeneratedProtocolMessageType('InitResponse', (_message.Message,), {
+  'DESCRIPTOR' : _INITRESPONSE,
+  '__module__' : 'blob_pb2'
+  # @@protoc_insertion_point(class_scope:blob.InitResponse)
+  })
+_sym_db.RegisterMessage(InitResponse)
 
 MoveRequest = _reflection.GeneratedProtocolMessageType('MoveRequest', (_message.Message,), {
   'DESCRIPTOR' : _MOVEREQUEST,
@@ -238,13 +309,22 @@ _BLOB = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=224,
-  serialized_end=334,
+  serialized_start=268,
+  serialized_end=427,
   methods=[
+  _descriptor.MethodDescriptor(
+    name='Init',
+    full_name='blob.Blob.Init',
+    index=0,
+    containing_service=None,
+    input_type=_INITREQUEST,
+    output_type=_INITRESPONSE,
+    serialized_options=None,
+  ),
   _descriptor.MethodDescriptor(
     name='Move',
     full_name='blob.Blob.Move',
-    index=0,
+    index=1,
     containing_service=None,
     input_type=_MOVEREQUEST,
     output_type=_MOVERESPONSE,
@@ -253,7 +333,7 @@ _BLOB = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='Region',
     full_name='blob.Blob.Region',
-    index=1,
+    index=2,
     containing_service=None,
     input_type=_REGIONREQUEST,
     output_type=_REGIONRESPONSE,

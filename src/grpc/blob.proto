@@ -1,11 +1,18 @@
 syntax = "proto3";
 package blob;
 service Blob {
+  rpc Init (InitRequest) returns (InitResponse) {}
   rpc Move (MoveRequest) returns (MoveResponse) {}
   rpc Region (RegionRequest) returns (RegionResponse) {}
 }
+message InitRequest {
+
+}
+message InitResponse {
+  string id = 1;
+}
 message MoveRequest {
-  uint32 id = 1;
+  string id = 1;
   double x = 2;
   double y = 3;
 }
