@@ -39,6 +39,6 @@ message Player {
   int32 mass = 5;
 }
 message Food {
-  double x = 2;
-  double y = 3;
+  double x = 1;
+  double y = 2;
 }
