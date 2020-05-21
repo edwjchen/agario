@@ -32,7 +32,7 @@ message RegionResponse {
   repeated Food foods = 2;
 }
 message Player {
-  string string = 1;
+  string id = 1;
   double x = 2;
   double y = 3;
   bool alive = 4;
