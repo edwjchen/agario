@@ -32,13 +32,13 @@ message RegionResponse {
   repeated Food foods = 2;
 }
 message Player {
-  string id = 1;
+  string string = 1;
   double x = 2;
   double y = 3;
   bool alive = 4;
   int32 mass = 5;
 }
 message Food {
-  double x = 2;
-  double y = 3;
+  double x = 1;
+  double y = 2;
 }
