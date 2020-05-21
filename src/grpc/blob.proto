@@ -5,9 +5,7 @@ service Blob {
   rpc Move (MoveRequest) returns (MoveResponse) {}
   rpc Region (RegionRequest) returns (RegionResponse) {}
 }
-message InitRequest {
-
-}
+message InitRequest {}
 message InitResponse {
   string id = 1;
   double x = 2;
@@ -30,7 +28,17 @@ message RegionRequest {
   double y = 2;
 }
 message RegionResponse {
-  bytes players = 1;
-  bytes food = 2;
+  repeated Player players = 1;
+  repeated Food foods = 2;
 }
-
+message Player {
+  string string = 1;
+  double x = 2;
+  double y = 3;
+  bool alive = 4;
+  int32 mass = 5;
+}
+message Food {
+  double x = 2;
+  double y = 3;
+}

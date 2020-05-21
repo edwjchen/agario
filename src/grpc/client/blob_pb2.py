@@ -18,7 +18,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='blob',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=b'\n\nblob.proto\x12\x04\x62lob\"\r\n\x0bInitRequest\">\n\x0cInitResponse\x12\n\n\x02id\x18\x01 \x01(\t\x12\t\n\x01x\x18\x02 \x01(\x01\x12\t\n\x01y\x18\x03 \x01(\x01\x12\x0c\n\x04mass\x18\x04 \x01(\x05\"/\n\x0bMoveRequest\x12\n\n\x02id\x18\x01 \x01(\t\x12\t\n\x01x\x18\x02 \x01(\x01\x12\t\n\x01y\x18\x03 \x01(\x01\"A\n\x0cMoveResponse\x12\t\n\x01x\x18\x01 \x01(\x01\x12\t\n\x01y\x18\x02 \x01(\x01\x12\r\n\x05\x61live\x18\x03 \x01(\x08\x12\x0c\n\x04mass\x18\x04 \x01(\x05\"%\n\rRegionRequest\x12\t\n\x01x\x18\x01 \x01(\x01\x12\t\n\x01y\x18\x02 \x01(\x01\"/\n\x0eRegionResponse\x12\x0f\n\x07players\x18\x01 \x01(\x0c\x12\x0c\n\x04\x66ood\x18\x02 \x01(\x0c\x32\x9f\x01\n\x04\x42lob\x12/\n\x04Init\x12\x11.blob.InitRequest\x1a\x12.blob.InitResponse\"\x00\x12/\n\x04Move\x12\x11.blob.MoveRequest\x1a\x12.blob.MoveResponse\"\x00\x12\x35\n\x06Region\x12\x13.blob.RegionRequest\x1a\x14.blob.RegionResponse\"\x00\x62\x06proto3'
+  serialized_pb=b'\n\nblob.proto\x12\x04\x62lob\"\r\n\x0bInitRequest\">\n\x0cInitResponse\x12\n\n\x02id\x18\x01 \x01(\t\x12\t\n\x01x\x18\x02 \x01(\x01\x12\t\n\x01y\x18\x03 \x01(\x01\x12\x0c\n\x04mass\x18\x04 \x01(\x05\"/\n\x0bMoveRequest\x12\n\n\x02id\x18\x01 \x01(\t\x12\t\n\x01x\x18\x02 \x01(\x01\x12\t\n\x01y\x18\x03 \x01(\x01\"A\n\x0cMoveResponse\x12\t\n\x01x\x18\x01 \x01(\x01\x12\t\n\x01y\x18\x02 \x01(\x01\x12\r\n\x05\x61live\x18\x03 \x01(\x08\x12\x0c\n\x04mass\x18\x04 \x01(\x05\"%\n\rRegionRequest\x12\t\n\x01x\x18\x01 \x01(\x01\x12\t\n\x01y\x18\x02 \x01(\x01\"J\n\x0eRegionResponse\x12\x1d\n\x07players\x18\x01 \x03(\x0b\x32\x0c.blob.Player\x12\x19\n\x05\x66oods\x18\x02 \x03(\x0b\x32\n.blob.Food\"K\n\x06Player\x12\x0e\n\x06string\x18\x01 \x01(\t\x12\t\n\x01x\x18\x02 \x01(\x01\x12\t\n\x01y\x18\x03 \x01(\x01\x12\r\n\x05\x61live\x18\x04 \x01(\x08\x12\x0c\n\x04mass\x18\x05 \x01(\x05\"\x1c\n\x04\x46ood\x12\t\n\x01x\x18\x02 \x01(\x01\x12\t\n\x01y\x18\x03 \x01(\x01\x32\x9f\x01\n\x04\x42lob\x12/\n\x04Init\x12\x11.blob.InitRequest\x1a\x12.blob.InitResponse\"\x00\x12/\n\x04Move\x12\x11.blob.MoveRequest\x1a\x12.blob.MoveResponse\"\x00\x12\x35\n\x06Region\x12\x13.blob.RegionRequest\x1a\x14.blob.RegionResponse\"\x00\x62\x06proto3'
 )
 
 
@@ -244,15 +244,15 @@ _REGIONRESPONSE = _descriptor.Descriptor(
   fields=[
     _descriptor.FieldDescriptor(
       name='players', full_name='blob.RegionResponse.players', index=0,
-      number=1, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"",
+      number=1, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='food', full_name='blob.RegionResponse.food', index=1,
-      number=2, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"",
+      name='foods', full_name='blob.RegionResponse.foods', index=1,
+      number=2, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
@@ -269,15 +269,116 @@ _REGIONRESPONSE = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=254,
-  serialized_end=301,
+  serialized_end=328,
 )
 
+
+_PLAYER = _descriptor.Descriptor(
+  name='Player',
+  full_name='blob.Player',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='string', full_name='blob.Player.string', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='x', full_name='blob.Player.x', index=1,
+      number=2, type=1, cpp_type=5, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='y', full_name='blob.Player.y', index=2,
+      number=3, type=1, cpp_type=5, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='alive', full_name='blob.Player.alive', index=3,
+      number=4, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='mass', full_name='blob.Player.mass', index=4,
+      number=5, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=330,
+  serialized_end=405,
+)
+
+
+_FOOD = _descriptor.Descriptor(
+  name='Food',
+  full_name='blob.Food',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='x', full_name='blob.Food.x', index=0,
+      number=2, type=1, cpp_type=5, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='y', full_name='blob.Food.y', index=1,
+      number=3, type=1, cpp_type=5, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=407,
+  serialized_end=435,
+)
+
+_REGIONRESPONSE.fields_by_name['players'].message_type = _PLAYER
+_REGIONRESPONSE.fields_by_name['foods'].message_type = _FOOD
 DESCRIPTOR.message_types_by_name['InitRequest'] = _INITREQUEST
 DESCRIPTOR.message_types_by_name['InitResponse'] = _INITRESPONSE
 DESCRIPTOR.message_types_by_name['MoveRequest'] = _MOVEREQUEST
 DESCRIPTOR.message_types_by_name['MoveResponse'] = _MOVERESPONSE
 DESCRIPTOR.message_types_by_name['RegionRequest'] = _REGIONREQUEST
 DESCRIPTOR.message_types_by_name['RegionResponse'] = _REGIONRESPONSE
+DESCRIPTOR.message_types_by_name['Player'] = _PLAYER
+DESCRIPTOR.message_types_by_name['Food'] = _FOOD
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 InitRequest = _reflection.GeneratedProtocolMessageType('InitRequest', (_message.Message,), {
@@ -322,6 +423,20 @@ RegionResponse = _reflection.GeneratedProtocolMessageType('RegionResponse', (_me
   })
 _sym_db.RegisterMessage(RegionResponse)
 
+Player = _reflection.GeneratedProtocolMessageType('Player', (_message.Message,), {
+  'DESCRIPTOR' : _PLAYER,
+  '__module__' : 'blob_pb2'
+  # @@protoc_insertion_point(class_scope:blob.Player)
+  })
+_sym_db.RegisterMessage(Player)
+
+Food = _reflection.GeneratedProtocolMessageType('Food', (_message.Message,), {
+  'DESCRIPTOR' : _FOOD,
+  '__module__' : 'blob_pb2'
+  # @@protoc_insertion_point(class_scope:blob.Food)
+  })
+_sym_db.RegisterMessage(Food)
+
 
 
 _BLOB = _descriptor.ServiceDescriptor(
@@ -330,8 +445,8 @@ _BLOB = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=304,
-  serialized_end=463,
+  serialized_start=438,
+  serialized_end=597,
   methods=[
   _descriptor.MethodDescriptor(
     name='Init',
