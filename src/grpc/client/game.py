@@ -13,6 +13,8 @@ SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 500
 surface = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
+FOOD_MASS = 7
+
 t_surface = pygame.Surface((95,25),pygame.SRCALPHA) #transparent rect for score
 t_lb_surface = pygame.Surface((155,278),pygame.SRCALPHA) #transparent rect for leaderboard
 t_surface.fill((50,50,50,80))
@@ -80,7 +82,7 @@ class Blob:
 
     def move(self):
         dX,dY = pygame.mouse.get_pos()
-        
+
         # print("start pos: ", dX, dY)
         moveRequest = blob_pb2.MoveRequest()
         moveRequest.id = self.name
@@ -96,7 +98,7 @@ class Blob:
         regionRequest = blob_pb2.RegionRequest()
         regionResponse = stub.Region(regionRequest)
         players = regionResponse.players
-        print(players)
+        # print(players)
         for player in players:
             col = self.color
             zoom = cam.zoom
@@ -107,6 +109,15 @@ class Blob:
             if(len(player.id) > 0):
                 fw, fh = font.size(player.id)
                 drawText(player.id, (player.x*cam.zoom+cam.x-int(fw/2),player.y*cam.zoom+cam.y-int(fh/2)),(50,50,50))
+
+        foods = regionResponse.foods
+        print(len(foods))
+        for food in foods:
+            # color = FOOD_COLORS[random.randint(0,len(FOOD_COLORS)-1)]
+            color = FOOD_COLORS[0]
+            pygame.draw.circle(surface, color, (int((food.x*cam.zoom+cam.x)),int(food.y*cam.zoom+cam.y)),int(FOOD_MASS*cam.zoom))
+
+
 
 class Piece:
     def __init__(self,surface,pos,color,mass,name,transition=False):
@@ -131,9 +142,10 @@ class Food:
         pygame.draw.circle(self.surface,self.color,(int((self.x*cam.zoom+cam.x)),int(self.y*cam.zoom+cam.y)),int(self.mass*cam.zoom))
 
 def spawn_foods(numOfFoods):
-    for i in range(numOfFoods):
-        food = Food(surface)
-        food_list.append(food)
+    pass
+    # for i in range(numOfFoods):
+    #     food = Food(surface)
+    #     food_list.append(food)
 
 def draw_grid():
     for i in range(0,2001,25):
@@ -159,7 +171,7 @@ def draw_HUD():
 
 camera = Camera()
 blob = Blob(surface,"Viliami")
-spawn_foods(2000)
+# spawn_foods(2000)
 
 while(True):
     clock.tick(70)
