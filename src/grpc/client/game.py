@@ -97,9 +97,15 @@ class Blob:
     def draw(self,cam):
         regionRequest = blob_pb2.RegionRequest()
         regionResponse = stub.Region(regionRequest)
+
         players = regionResponse.players
         # print(players)
         for player in players:
+            if player.id == self.name:
+                #update player mass
+                self.x = player.x 
+                self.y = player.y 
+                self.mass = player.mass
             col = self.color
             zoom = cam.zoom
             x = cam.x
@@ -111,12 +117,13 @@ class Blob:
                 drawText(player.id, (player.x*cam.zoom+cam.x-int(fw/2),player.y*cam.zoom+cam.y-int(fh/2)),(50,50,50))
 
         foods = regionResponse.foods
-        print(len(foods))
+    
         for food in foods:
+            #only draw food if food is on screen
+
             # color = FOOD_COLORS[random.randint(0,len(FOOD_COLORS)-1)]
             color = FOOD_COLORS[0]
-            pygame.draw.circle(surface, color, (int((food.x*cam.zoom+cam.x)),int(food.y*cam.zoom+cam.y)),int(FOOD_MASS*cam.zoom))
-
+            pygame.draw.circle(self.surface, color, (int((food.x*cam.zoom+cam.x)),int(food.y*cam.zoom+cam.y)),int(FOOD_MASS*cam.zoom))
 
 
 class Piece:
@@ -138,8 +145,8 @@ class Food:
         self.surface = surface
         self.color = FOOD_COLORS[random.randint(0,len(FOOD_COLORS)-1)]
 
-    def draw(self,cam):
-        pygame.draw.circle(self.surface,self.color,(int((self.x*cam.zoom+cam.x)),int(self.y*cam.zoom+cam.y)),int(self.mass*cam.zoom))
+    # def draw(self,cam):
+    #     pygame.draw.circle(self.surface,self.color,(int((self.x*cam.zoom+cam.x)),int(self.y*cam.zoom+cam.y)),int(self.mass*cam.zoom))
 
 def spawn_foods(numOfFoods):
     pass
@@ -181,13 +188,14 @@ while(True):
             quit()
     blob.update()
     camera.zoom = 100/(blob.mass)+0.3
+    
     camera.center(blob)
     # print(blob.x, blob.y)
     surface.fill((242,251,255))
     draw_grid()
 
-    for c in food_list:
-        c.draw(camera)
+    # for c in food_list:
+    #     c.draw(camera)
     blob.draw(camera)
 
     draw_HUD()
