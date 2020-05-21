@@ -78,6 +78,7 @@ class Blob:
 
     def move(self):
         dX,dY = pygame.mouse.get_pos()
+        
         print("start pos: ", dX, dY)
         blobRequest = blob_pb2.BlobRequest()
         blobRequest.x = dX

@@ -28,13 +28,17 @@ const SCREEN_WIDTH = 800
 const SCREEN_HEIGHT = 500
 const speed = 4
 
+var x float64 = 100
+var y float64 = 100 
+
 // Search function responsible to get the Country information
 func (Server) Move(ctx context.Context, request *blob.BlobRequest) (*blob.BlobResponse, error) {
   //for now just echo response with increment on position
-  x := request.Position.GetX()
-  y := request.Position.GetY()
+  dx := request.GetX()
+  dy := request.GetY()
 
-  rotation := math.Atan2(dY - SCREEN_HEIGHT / 2,dX - SCREEN_HEIGHT / 2) * 180 / math.Pi
+  log.Println("get: ", dx, dy)
+  rotation := math.Atan2(dy - SCREEN_HEIGHT / 2,dx - SCREEN_HEIGHT / 2) * 180 / math.Pi
   vx := speed * (90 - math.Abs(rotation)) / 90
   var vy float64
   if rotation < 0 {
@@ -43,9 +47,13 @@ func (Server) Move(ctx context.Context, request *blob.BlobRequest) (*blob.BlobRe
     vy = speed  - math.Abs(vx)
   }
 
-  newPos := blob.Position{X: x + vx, Y: y + vy}
+  log.Println("send: ", x+vx, y+vy)
+  x += vx
+  y += vy
+
   response := blob.BlobResponse{
-    Position: &newPos,
+    X: x,
+    Y: y,
     Alive: true,
     Mass: 0,
     Players: make([]byte, 0),
