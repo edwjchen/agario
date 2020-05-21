@@ -78,17 +78,15 @@ class Blob:
 
     def move(self):
         dX,dY = pygame.mouse.get_pos()
-        data = blob_pb2.Position()
-        data.x = dX
-        data.y = dY
-
         print("start pos: ", dX, dY)
         blobRequest = blob_pb2.BlobRequest()
+        blobRequest.x = dX
+        blobRequest.y = dY
         blobResponse = stub.Move(blobRequest)
-        
-        print("end pos: ", blobResponse.position.x, blobResponse.position.y)
-        self.x += blobResponse.position.x
-        self.y += blobResponse.position.y
+
+        print("end pos: ", blobResponse.x, blobResponse.y)
+        self.x = blobResponse.x
+        self.y = blobResponse.y
 
     def draw(self,cam):
         col = self.color
