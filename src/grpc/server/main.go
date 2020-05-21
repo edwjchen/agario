@@ -12,6 +12,7 @@ import (
   "strconv"
   "sync"
   "math/rand"
+  // "github.com/paulmach/orb"
   // "github.com/golang/protobuf/proto"
 )
 
@@ -31,20 +32,18 @@ type Server struct{}
 
 type BlobsInfo struct {
   blobs map[string]*blob.Player
-  numBlobs int
 	mux sync.Mutex
 }
 
 func (b *BlobsInfo) NewBlob() (string, float64, float64) {
   b.mux.Lock()
   defer b.mux.Unlock()
-  newBlobId := SERVER_ID + strconv.Itoa(b.numBlobs)
+  newBlobId := SERVER_ID + strconv.Itoa(len(b.blobs))
   startX := rand.Float64() * 400 + 100
   startY := rand.Float64() * 400 + 100
   //add blob to map
   newBlob := &blob.Player{Id: newBlobId, X: startX, Y: startY, Alive: true, Mass: STARTING_MASS}
   b.blobs[newBlobId] = newBlob
-  b.numBlobs++
   return newBlobId, startX, startY
 }
 
@@ -96,7 +95,7 @@ const speed = 4
 var x float64 = 400
 var y float64 = 250
 
-var blobsInfo BlobsInfo = BlobsInfo{blobs: make(map[string]*blob.Player), numBlobs: 0} 
+var blobsInfo BlobsInfo = BlobsInfo{blobs: make(map[string]*blob.Player)} 
 
 func (Server) Init(ctx context.Context, request *blob.InitRequest) (*blob.InitResponse, error) {
 
