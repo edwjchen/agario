@@ -12,14 +12,19 @@ import (
   "strconv"
   "sync"
   "math/rand"
-  // "github.com/paulmach/orb"
+  "github.com/paulmach/orb"
+  "github.com/paulmach/orb/quadtree"
   // "github.com/golang/protobuf/proto"
 )
+
+const SCREEN_WIDTH = 800
+const SCREEN_HEIGHT = 500
 
 func main() {
   grpcServer := grpc.NewServer()
   var server Server
   blob.RegisterBlobServer(grpcServer, server)
+  foodInfo.InitFood()
   listen, err := net.Listen("tcp", "0.0.0.0:3000")
   if err != nil {
     log.Fatalf("could not listen to 0.0.0.0:3000 %v", err)
@@ -30,8 +35,70 @@ func main() {
 // Server is implementation proto interface
 type Server struct{}
 
+const MIN_FOOD_NUM = 800
+
+type FoodInfo struct {
+  foodTree *quadtree.Quadtree
+  foodMap map[orb.Pointer] bool
+  mux sync.Mutex
+}
+
+var foodInfo FoodInfo
+
+func (f *FoodInfo) InitFood() {
+  // TODO change to map
+  f.mux.Lock()
+  f.foodMap = make(map[orb.Pointer]bool)
+  f.foodTree = quadtree.New(orb.Bound{Min: orb.Point{0, 0}, Max: orb.Point{SCREEN_WIDTH, SCREEN_HEIGHT}})
+  f.mux.Unlock()
+
+  for i := 0; i < 1000; i++ {
+    log.Println(i)
+    f.SpawnFood()
+  }
+}
+
+// Doesn't spawn food if not needed
+func (f *FoodInfo) SpawnFood() {
+  f.mux.Lock()
+  defer f.mux.Unlock()
+  if len(f.foodMap) > MIN_FOOD_NUM {
+    return
+  }
+
+  for i := 0 ; i < MIN_FOOD_NUM - len(f.foodMap) ; i++ {
+    foodPoint := orb.Point{rand.Float64() * SCREEN_WIDTH, rand.Float64() * SCREEN_HEIGHT}
+    f.foodTree.Add(foodPoint) 
+    f.foodMap[foodPoint] = true
+  }
+}
+
+func (f *FoodInfo) removeFood(food orb.Pointer) {
+  f.foodTree.Remove(food, nil)
+  delete(f.foodMap, food)
+}
+
+// Returns number of foods eaten by player
+func (f *FoodInfo) GetPlayerEaten(player *blob.Player) int {
+  // Delegate to removeFood
+  // Get rectangular bound around player
+
+  f.mux.Lock()
+  defer f.mux.Unlock()
+  radius := float64(player.Mass / 2)
+  playerBound := orb.Bound{Min: orb.Point{player.X - radius, player.Y - radius}, Max: orb.Point{player.X + radius, player.Y + radius}}
+
+  foodSlice := f.foodTree.InBound([]orb.Pointer{}, playerBound)
+  for _, food := range foodSlice {
+    f.removeFood(food)
+  }
+
+  return len(foodSlice)
+}
+
 type BlobsInfo struct {
   blobs map[string]*blob.Player
+  blobTree quadtree.Quadtree
 	mux sync.Mutex
 }
 
@@ -86,8 +153,6 @@ func (b *BlobsInfo) GetBlobs() []*blob.Player {
 }
 
 
-const SCREEN_WIDTH = 800
-const SCREEN_HEIGHT = 500
 const STARTING_MASS = 20
 const SERVER_ID = "server1::"
 const speed = 4
@@ -98,7 +163,6 @@ var y float64 = 250
 var blobsInfo BlobsInfo = BlobsInfo{blobs: make(map[string]*blob.Player)} 
 
 func (Server) Init(ctx context.Context, request *blob.InitRequest) (*blob.InitResponse, error) {
-
   newBlobId, startX, startY := blobsInfo.NewBlob()
   log.Println(newBlobId, "has joined")
   response := blob.InitResponse {
