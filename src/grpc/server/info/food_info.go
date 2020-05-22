@@ -17,8 +17,6 @@ type FoodInfo struct {
 	mux      sync.Mutex
 }
 
-var foodInfo FoodInfo
-
 func (f *FoodInfo) InitFood() {
 	// TODO change to map
 	f.mux.Lock()
@@ -39,7 +37,7 @@ func (f *FoodInfo) SpawnFood() {
 
 	for i := 0; i < MIN_FOOD_NUM-len(f.foodMap); i++ {
 		x := rand.Float64() * SCREEN_WIDTH
-    y := rand.Float64() * SCREEN_HEIGHT
+    	y := rand.Float64() * SCREEN_HEIGHT
 
 		foodPoint := orb.Point{x, y}
 		food := blob.Food{X: x, Y: y}
