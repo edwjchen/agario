@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc"
   "math"
   "grpc/server/info"
-//   "time"
+  "time"
 	// "github.com/golang/protobuf/proto"
 )
 
@@ -34,7 +34,7 @@ func main() {
 		log.Fatalf("could not listen to 0.0.0.0:3000 %v", err)
 	}
   log.Println("Server starting...")
-  // go spawnFood()
+  go spawnFood()
 	log.Fatal(grpcServer.Serve(listen))
 }
 
@@ -62,6 +62,18 @@ func (Server) Init(ctx context.Context, request *blob.InitRequest) (*blob.InitRe
 func (Server) Move(ctx context.Context, request *blob.MoveRequest) (*blob.MoveResponse, error) {
 	//for now just echo response with increment on position
 	blobId := request.GetId()
+
+	if !blobsInfo.IsBlobAlive(blobId) {
+		response := blob.MoveResponse{
+			X:     0,
+			Y:     0,
+			Alive: false,
+			Mass:  0,
+		}
+
+		return &response, nil
+	}
+
 	dx := request.GetX()
 	dy := request.GetY()
 
@@ -78,6 +90,7 @@ func (Server) Move(ctx context.Context, request *blob.MoveRequest) (*blob.MoveRe
 	log.Println("send: ", x+vx, y+vy)
 	x, y := blobsInfo.UpdatePos(blobId, vx, vy)
 	newMass := blobsInfo.UpdateBlobMass(blobId, &foodInfo)
+	blobsInfo.EatBlobs(blobId)
 	// add func that gets if blob is alive.
 
 	response := blob.MoveResponse{
@@ -105,9 +118,9 @@ func (Server) Region(ctx context.Context, request *blob.RegionRequest) (*blob.Re
 	return &response, nil
 }
 
-// func spawnFood() {
-//   ticker := time.NewTicker(1 * time.Second)
-// 	for _ = range ticker.C {
-// 		foodInfo.SpawnFood()
-// 	}
-// }
+func spawnFood() {
+  ticker := time.NewTicker(1 * time.Second)
+	for _ = range ticker.C {
+		foodInfo.SpawnFood()
+	}
+}

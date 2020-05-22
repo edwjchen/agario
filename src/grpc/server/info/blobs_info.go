@@ -8,11 +8,13 @@ import (
 	"strconv"
 	"sync"
 	"log"
+	"math"
 )
 
 const SCREEN_WIDTH = 800
 const SCREEN_HEIGHT = 500
 const STARTING_MASS = 20
+const EAT_RADIUS_DELTA = 5
 const SERVER_ID = "server1::"
 
 type BlobsInfo struct {
@@ -49,6 +51,7 @@ func (b *BlobsInfo) NewBlob() (string, float64, float64) {
 	b.blobsMap[newBlobId] = newBlob
 	point := orb.Point{startX, startY}
 	b.pointsMap[point] = newBlob
+	b.blobTree.Add(point)
 
 	return newBlobId, startX, startY
 }
@@ -82,6 +85,9 @@ func (b *BlobsInfo) UpdatePos(name string, dx float64, dy float64) (float64, flo
 	b.blobsMap[name] = updateBlob
 	newPoint := orb.Point{updateBlob.X, updateBlob.Y}
 	b.pointsMap[newPoint] = updateBlob
+
+	b.blobTree.Remove(oldPoint, nil)
+	b.blobTree.Add(newPoint)
 
 	return updateBlob.X, updateBlob.Y
 }
@@ -118,29 +124,36 @@ func (b *BlobsInfo) UpdateBlobMass(id string, foodInfo *FoodInfo) int32 {
 	return newMass
 }
 
-func (b *BlobsInfo) GetBlobsEaten(id string) {
+func (b *BlobsInfo) EatBlobs(id string) {
 	b.mux.Lock()
 	log.Println("lock in getblobseaten")
 	defer log.Println("unlock in getblobseaten")
 	defer b.mux.Unlock()
 
 	currBlob := b.blobsMap[id]
-	currBlobRadius := float64(b.blobsMap[id].Mass / 2)
+	currBlobRadius := float64(currBlob.Mass / 2)
 	playerBound := orb.Bound{Min: orb.Point{currBlob.X - currBlobRadius, currBlob.Y - currBlobRadius}, Max: orb.Point{currBlob.X + currBlobRadius, currBlob.Y + currBlobRadius}}
 
 	blobsInBound := b.blobTree.InBound([]orb.Pointer{}, playerBound)
-	for blob := range blobsInBound {
-		log.Println(blob)
-		// check if blob is dead => check radius 
-		// if radius of curr blob > (center to center distance between other blob and current blob) + (radius of other blob)
-		// if yes, kill it 
-	}
+	for _, blobPoint := range blobsInBound {
+		blob := b.pointsMap[blobPoint.Point()]
+		blobRadius := float64(blob.Mass/2)
 
-	// iterate through blobs and check radius
-	// playersInsideCurrPlayer := make([]*blob.Player, 0)
+		centerDistance := blobDistance(currBlob.X, currBlob.Y, blob.X, blob.Y)
+
+		if currBlobRadius > (centerDistance + blobRadius + EAT_RADIUS_DELTA) {
+			currBlob.Mass += (blob.Mass) / 2
+			blob.Alive = false
+		}
+	}
 }
 
+func (b *BlobsInfo) IsBlobAlive(id string) bool {
+	b.mux.Lock()
+	defer b.mux.Unlock()
 
+	return b.blobsMap[id].Alive
+}
 
 func (b *BlobsInfo) removeBlob(blobPointer orb.Pointer, id string){ 
 	b.mux.Lock()
@@ -149,4 +162,9 @@ func (b *BlobsInfo) removeBlob(blobPointer orb.Pointer, id string){
 	b.blobsMap[id].Alive = false
 	b.mux.Unlock()
 	log.Println("unlock in removeblob")
+}
+
+
+func blobDistance(x1, y1, x2, y2 float64) float64 {
+	return math.Sqrt((y2 - y1) * (y2 - y1) + (x2 - x1) * (x2 - x1))
 }
