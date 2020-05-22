@@ -7,7 +7,7 @@ import (
 	"math/rand"
 	"strconv"
 	"sync"
-	"log"
+	// "log"
 	"math"
 )
 
@@ -30,18 +30,14 @@ type BlobsInfo struct {
 func (b *BlobsInfo) InitBlobs() {
 	// TODO change to map
 	b.mux.Lock()
-	log.Println("lock in InitBlobs")
 	b.blobsMap = make(map[string]*blob.Player)
 	b.blobTree = quadtree.New(orb.Bound{Min: orb.Point{0, 0}, Max: orb.Point{SCREEN_WIDTH, SCREEN_HEIGHT}})
 	b.pointsMap = make(map[orb.Point]*blob.Player)
 	b.mux.Unlock()
-	log.Println("unlock in InitBlobs")
 }
 
 func (b *BlobsInfo) NewBlob() (string, float64, float64) {
 	b.mux.Lock()
-	log.Println("lock in NewBlob")
-	defer log.Println("unlock in NewBlob")
 	defer b.mux.Unlock()
 	newBlobId := SERVER_ID + strconv.Itoa(len(b.blobsMap))
 	startX := rand.Float64()*400 + 100
@@ -58,8 +54,6 @@ func (b *BlobsInfo) NewBlob() (string, float64, float64) {
 
 func (b *BlobsInfo) UpdatePos(name string, dx float64, dy float64) (float64, float64) {
 	b.mux.Lock()
-	log.Println("lock in UpdatePos")
-	defer log.Println("unlock in UpdatePos")
 	defer b.mux.Unlock()
 	updateBlob := b.blobsMap[name]
 
@@ -94,8 +88,6 @@ func (b *BlobsInfo) UpdatePos(name string, dx float64, dy float64) (float64, flo
 
 func (b *BlobsInfo) GetBlobs() []*blob.Player {
 	b.mux.Lock()
-	log.Println("lock in getblobs")
-	defer log.Println("unlock in getblobs")
 	defer b.mux.Unlock()
 	retBlobs := make([]*blob.Player, 0)
 	// log.Println("Printing blobs")
@@ -112,8 +104,6 @@ func (b *BlobsInfo) GetBlobs() []*blob.Player {
 // Returns update mass of blob
 func (b *BlobsInfo) UpdateBlobMass(id string, foodInfo *FoodInfo) int32 {
 	b.mux.Lock()
-	log.Println("lock in updateblobmass")
-	defer log.Println("unlock in updateblobmass")
 	defer b.mux.Unlock()
 	player := b.blobsMap[id]
 	oldMass := player.Mass
@@ -126,8 +116,6 @@ func (b *BlobsInfo) UpdateBlobMass(id string, foodInfo *FoodInfo) int32 {
 
 func (b *BlobsInfo) EatBlobs(id string) {
 	b.mux.Lock()
-	log.Println("lock in getblobseaten")
-	defer log.Println("unlock in getblobseaten")
 	defer b.mux.Unlock()
 
 	currBlob := b.blobsMap[id]
@@ -143,7 +131,7 @@ func (b *BlobsInfo) EatBlobs(id string) {
 
 		if currBlobRadius > (centerDistance + blobRadius + EAT_RADIUS_DELTA) {
 			currBlob.Mass += (blob.Mass) / 2
-			blob.Alive = false
+			b.removeBlob(blobPoint, blob.Id)
 		}
 	}
 }
@@ -156,12 +144,9 @@ func (b *BlobsInfo) IsBlobAlive(id string) bool {
 }
 
 func (b *BlobsInfo) removeBlob(blobPointer orb.Pointer, id string){ 
-	b.mux.Lock()
-	log.Println("lock in removeBlob")
+	delete(b.pointsMap, blobPointer.Point())
 	b.blobTree.Remove(blobPointer, nil)
 	b.blobsMap[id].Alive = false
-	b.mux.Unlock()
-	log.Println("unlock in removeblob")
 }
 
 

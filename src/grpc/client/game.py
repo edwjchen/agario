@@ -110,8 +110,7 @@ class Blob:
                 fw, fh = font.size(player.id)
                 drawText(player.id, (player.x*cam.zoom+cam.x-int(fw/2),player.y*cam.zoom+cam.y-int(fh/2)),(50,50,50))
 
-        foods = regionResponse.foods
-    
+        foods = regionResponse.foods    
         for food in foods:
             #only draw food if food is on screen
 

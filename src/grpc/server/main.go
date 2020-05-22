@@ -77,7 +77,7 @@ func (Server) Move(ctx context.Context, request *blob.MoveRequest) (*blob.MoveRe
 	dx := request.GetX()
 	dy := request.GetY()
 
-	log.Println("get: ", dx, dy)
+	// log.Println("get: ", dx, dy)
 	rotation := math.Atan2(dy-SCREEN_HEIGHT/2, dx-SCREEN_WIDTH/2) * 180 / math.Pi
 	vx := speed * (90 - math.Abs(rotation)) / 90
 	var vy float64
