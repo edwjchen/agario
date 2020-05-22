@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc"
   "math"
   "grpc/server/info"
-  "time"
+//   "time"
 	// "github.com/golang/protobuf/proto"
 )
 
@@ -65,7 +65,7 @@ func (Server) Move(ctx context.Context, request *blob.MoveRequest) (*blob.MoveRe
 	dx := request.GetX()
 	dy := request.GetY()
 
-	// log.Println("get: ", dx, dy)
+	log.Println("get: ", dx, dy)
 	rotation := math.Atan2(dy-SCREEN_HEIGHT/2, dx-SCREEN_WIDTH/2) * 180 / math.Pi
 	vx := speed * (90 - math.Abs(rotation)) / 90
 	var vy float64
@@ -75,9 +75,9 @@ func (Server) Move(ctx context.Context, request *blob.MoveRequest) (*blob.MoveRe
 		vy = speed - math.Abs(vx)
 	}
 
-	// log.Println("send: ", x+vx, y+vy)
+	log.Println("send: ", x+vx, y+vy)
 	x, y := blobsInfo.UpdatePos(blobId, vx, vy)
-	newMass := blobsInfo.UpdateBlobMass(blobId, foodInfo)
+	newMass := blobsInfo.UpdateBlobMass(blobId, &foodInfo)
 	// add func that gets if blob is alive.
 
 	response := blob.MoveResponse{
@@ -95,17 +95,19 @@ func (Server) Region(ctx context.Context, request *blob.RegionRequest) (*blob.Re
 	// y := request.GetY()
 	// log.Println("pos: ", x, y)
 
+	players := blobsInfo.GetBlobs()
+	foods := foodInfo.GetFoods()
 	response := blob.RegionResponse{
-		Players: blobsInfo.GetBlobs(),
-		Foods:   foodInfo.GetFoods(),
+		Players: players,
+		Foods:   foods,
 	}
 
 	return &response, nil
 }
 
-func spawnFood() {
-  ticker := time.NewTicker(1 * time.Second)
-	for _ = range ticker.C {
-		foodInfo.SpawnFood()
-	}
-}
+// func spawnFood() {
+//   ticker := time.NewTicker(1 * time.Second)
+// 	for _ = range ticker.C {
+// 		foodInfo.SpawnFood()
+// 	}
+// }
