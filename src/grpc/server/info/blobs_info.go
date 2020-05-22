@@ -7,7 +7,7 @@ import (
 	"math/rand"
 	"strconv"
 	"sync"
-	// "log"
+	"log"
 )
 
 const SCREEN_WIDTH = 800
@@ -18,8 +18,9 @@ const SERVER_ID = "server1::"
 type BlobsInfo struct {
 	blobsMap map[string]*blob.Player
 	
-	//pointsMap point of player mapped to player id
-	pointsMap map[orb.Point]string
+	// pointsMap point of player mapped to playerPointer
+	pointsMap map[orb.Point]*blob.Player
+
 	blobTree *quadtree.Quadtree
 	mux sync.Mutex
 }
@@ -29,6 +30,7 @@ func (b *BlobsInfo) InitBlobs() {
 	b.mux.Lock()
 	b.blobsMap = make(map[string]*blob.Player)
 	b.blobTree = quadtree.New(orb.Bound{Min: orb.Point{0, 0}, Max: orb.Point{SCREEN_WIDTH, SCREEN_HEIGHT}})
+	b.pointsMap = make(map[orb.Point]*blob.Player)
 	b.mux.Unlock()
 }
 
@@ -41,16 +43,19 @@ func (b *BlobsInfo) NewBlob() (string, float64, float64) {
 	//add blob to map
 	newBlob := &blob.Player{Id: newBlobId, X: startX, Y: startY, Alive: true, Mass: STARTING_MASS}
 	b.blobsMap[newBlobId] = newBlob
+	point := orb.Point{startX, startY}
+	b.pointsMap[point] = newBlob
+
 	return newBlobId, startX, startY
 }
 
 func (b *BlobsInfo) UpdatePos(name string, dx float64, dy float64) (float64, float64) {
 	b.mux.Lock()
 	defer b.mux.Unlock()
-	updateBlob := *b.blobsMap[name]
+	updateBlob := b.blobsMap[name]
 
-	currentPos := orb.Point{}
-
+	oldPoint := orb.Point{updateBlob.X, updateBlob.Y}
+	delete(b.pointsMap, oldPoint)
 
 	updateBlob.X += dx
 	updateBlob.Y += dy
@@ -68,11 +73,9 @@ func (b *BlobsInfo) UpdatePos(name string, dx float64, dy float64) (float64, flo
 		updateBlob.Y = 0
 	}
 	// log.Println(name, " is at pos ", updateBlob.x, updateBlob.y)
-
-	//update point
-	newPoint 
-	point.X = updateBlob.X
-	point.Y = updateBlob.Y 
+	b.blobsMap[name] = updateBlob
+	newPoint := orb.Point{updateBlob.X, updateBlob.Y}
+	b.pointsMap[newPoint] = updateBlob
 
 	return updateBlob.X, updateBlob.Y
 }
@@ -83,7 +86,7 @@ func (b *BlobsInfo) GetBlobs() []*blob.Player {
 	retBlobs := make([]*blob.Player, 0)
 	// log.Println("Printing blobs")
 	for _, blob := range b.blobsMap {
-		if *blob.alive{
+		if blob.Alive{
 			// log.Println(blob)
 			retBlobs = append(retBlobs, blob)
 		}
@@ -96,15 +99,37 @@ func (b *BlobsInfo) GetBlobs() []*blob.Player {
 func (b *BlobsInfo) UpdateBlobMass(id string, foodInfo FoodInfo) int32 {
 	b.mux.Lock()
 	defer b.mux.Unlock()
-	player := b.blobsMap[id]
-	oldMass := player.Mass
-	newMass := oldMass + foodInfo.GetNumFoodsEaten(player)
-	b.blobsMap[id].Mass = newMass
+	// player := b.blobsMap[id]
+	// oldMass := player.Mass
+	// newMass := oldMass + foodInfo.GetNumFoodsEaten(player)
+	// player.Mass = newMass
 
-	return newMass
+	return 50// newMass
 }
 
-func (b *BlobsInfo) removeBlob(blobPointer orb.Pointer, id string) {
+func (b *BlobsInfo) GetBlobsEaten(id string) {
+	b.mux.Lock()
+	defer b.mux.Unlock()
+
+	currBlob := b.blobsMap[id]
+	currBlobRadius := float64(b.blobsMap[id].Mass / 2)
+	playerBound := orb.Bound{Min: orb.Point{currBlob.X - currBlobRadius, currBlob.Y - currBlobRadius}, Max: orb.Point{currBlob.X + currBlobRadius, currBlob.Y + currBlobRadius}}
+
+	blobsInBound := b.blobTree.InBound([]orb.Pointer{}, playerBound)
+	for blob := range blobsInBound {
+		log.Println(blob)
+		// check if blob is dead => check radius 
+		// if radius of curr blob > (center to center distance between other blob and current blob) + (radius of other blob)
+		// if yes, kill it 
+	}
+
+	// iterate through blobs and check radius
+	// playersInsideCurrPlayer := make([]*blob.Player, 0)
+}
+
+
+
+func (b *BlobsInfo) removeBlob(blobPointer orb.Pointer, id string){ 
 	b.mux.Lock()
 	b.blobTree.Remove(blobPointer, nil)
 	b.blobsMap[id].Alive = false

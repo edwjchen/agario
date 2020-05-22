@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc"
   "math"
   "grpc/server/info"
+  "time"
 	// "github.com/golang/protobuf/proto"
 )
 
@@ -32,7 +33,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not listen to 0.0.0.0:3000 %v", err)
 	}
-	log.Println("Server starting...")
+  log.Println("Server starting...")
+  // go spawnFood()
 	log.Fatal(grpcServer.Serve(listen))
 }
 
@@ -76,6 +78,7 @@ func (Server) Move(ctx context.Context, request *blob.MoveRequest) (*blob.MoveRe
 	// log.Println("send: ", x+vx, y+vy)
 	x, y := blobsInfo.UpdatePos(blobId, vx, vy)
 	newMass := blobsInfo.UpdateBlobMass(blobId, foodInfo)
+	// add func that gets if blob is alive.
 
 	response := blob.MoveResponse{
 		X:     x,
@@ -98,4 +101,11 @@ func (Server) Region(ctx context.Context, request *blob.RegionRequest) (*blob.Re
 	}
 
 	return &response, nil
+}
+
+func spawnFood() {
+  ticker := time.NewTicker(1 * time.Second)
+	for _ = range ticker.C {
+		foodInfo.SpawnFood()
+	}
 }

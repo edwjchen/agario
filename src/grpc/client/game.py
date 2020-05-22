@@ -73,13 +73,6 @@ class Blob:
 
     def update(self):
         self.move()
-        self.collisionDetection()
-
-    def collisionDetection(self):
-        for food in food_list:
-            if(getDistance((food.x,food.y),(self.x,self.y)) <= self.mass/2):
-                self.mass+=0.5
-                food_list.remove(food)
 
     def move(self):
         dX,dY = pygame.mouse.get_pos()
