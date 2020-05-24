@@ -1,0 +1,13 @@
+service EntryServer {
+    rpc Join(JoinRequest) returns (JoinReply) {}
+}
+
+message JoinRequest {
+    string ip = 1;
+}
+
+message JoinReply {
+    string action = 1;
+    string ip = 2;
+    int32 map_length = 3;
+}

@@ -1,7 +1,7 @@
 package info
 
 import (
-	"grpc/server/blob"
+	"client_server/server/blob"
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/quadtree"
 	"math/rand"

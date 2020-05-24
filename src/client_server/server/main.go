@@ -2,7 +2,7 @@ package main
 
 import (
 	// "encoding/json"
-	"grpc/server/blob"
+	"client_server/server/blob"
 	// "io/ioutil"
 	"log"
 	"net"
@@ -10,7 +10,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"math"
-	"grpc/server/info"
+	"client_server/server/info"
 	"time"
 	// "github.com/golang/protobuf/proto"
 )

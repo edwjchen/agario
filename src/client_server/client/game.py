@@ -98,8 +98,8 @@ class Blob:
         for player in players:
             if player.id == self.name:
                 #update player mass
-                self.x = player.x 
-                self.y = player.y 
+                self.x = player.x
+                self.y = player.y
                 self.mass = player.mass
             col = self.color
             zoom = cam.zoom
@@ -111,7 +111,7 @@ class Blob:
                 fw, fh = font.size(player.id)
                 drawText(player.id, (player.x*cam.zoom+cam.x-int(fw/2),player.y*cam.zoom+cam.y-int(fh/2)),(50,50,50))
 
-        foods = regionResponse.foods    
+        foods = regionResponse.foods
         for food in foods:
             #only draw food if food is on screen
 
@@ -182,7 +182,7 @@ while(True):
             quit()
     blob.update()
     camera.zoom = ZOOM_CONSTANT/(blob.mass)+0.3
-    
+
     camera.center(blob)
     # print(blob.x, blob.y)
     surface.fill((242,251,255))
