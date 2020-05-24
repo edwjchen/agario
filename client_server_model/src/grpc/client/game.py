@@ -15,7 +15,7 @@ SCREEN_HEIGHT = 500
 surface = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 FOOD_MASS = 7
-ZOOM_CONSTANT = 1
+ZOOM_CONSTANT = 100
 MAP_LENGTH = 10000
 
 t_surface = pygame.Surface((95,25),pygame.SRCALPHA) #transparent rect for score
@@ -79,20 +79,10 @@ class Blob:
 
     def move(self):
         dX,dY = pygame.mouse.get_pos()
-        rotation = math.atan2(dY-(float(SCREEN_HEIGHT)/2),dX-(float(SCREEN_WIDTH)/2))*180/math.pi
-        speed = 5-1
-        vx = speed * (90-math.fabs(rotation))/90
-        vy = 0
-        if(rotation < 0):
-            vy = -speed + math.fabs(vx)
-        else:
-            vy = speed - math.fabs(vx)
-
-        # print("start pos: ", dX, dY)
         moveRequest = blob_pb2.MoveRequest()
         moveRequest.id = self.name
-        moveRequest.x = vx
-        moveRequest.y = vy
+        moveRequest.x = dX
+        moveRequest.y = dY
         moveResponse = stub.Move(moveRequest)
 
         # print("end pos: ", moveResponse.x, moveResponse.y)

@@ -9,7 +9,7 @@ import (
 	// "log"
 )
 
-const MIN_FOOD_NUM = 5000
+const MIN_FOOD_NUM = 50
 
 type FoodInfo struct {
 	foodTree *quadtree.Quadtree
@@ -21,7 +21,7 @@ func (f *FoodInfo) InitFood() {
 	// TODO change to map
 	f.mux.Lock()
 	// f.foodMap = make(map[blob.Food]*blob.Food)
-	f.foodTree = quadtree.New(orb.Bound{Min: orb.Point{0, 0}, Max: orb.Point{SCREEN_WIDTH, SCREEN_HEIGHT}})
+	f.foodTree = quadtree.New(orb.Bound{Min: orb.Point{0, 0}, Max: orb.Point{MAP_WIDTH, MAP_HEIGHT}})
 	f.mux.Unlock()
 
 	f.SpawnFood()
@@ -31,19 +31,19 @@ func (f *FoodInfo) InitFood() {
 func (f *FoodInfo) SpawnFood() {
 	f.mux.Lock()
 	defer f.mux.Unlock()
-	bound := orb.Bound{Min: orb.Point{0, 0}, Max: orb.Point{SCREEN_WIDTH, SCREEN_HEIGHT}}
-	foods := f.foodTree.InBound([]orb.Pointer{}, bound)
+	// bound := orb.Bound{Min: orb.Point{0, 0}, Max: orb.Point{MAP_WIDTH, MAP_HEIGHT}}
+	// foods := f.foodTree.InBound([]orb.Pointer{}, bound)
 
-	if len(foods) > MIN_FOOD_NUM {
-		return
-	}
+	// if len(foods) > MIN_FOOD_NUM {
+	// 	return
+	// }
 	// rand.Seed(0)
 
-	spawnRandNum := rand.Intn(MIN_FOOD_NUM-len(foods))
+	spawnRandNum := rand.Intn(MIN_FOOD_NUM)
 
 	for i := 0; i < spawnRandNum; i++ {
-		x := float64(rand.Intn(SCREEN_WIDTH))
-    	y := float64(rand.Intn(SCREEN_HEIGHT))
+		x := float64(rand.Intn(MAP_WIDTH))
+    	y := float64(rand.Intn(MAP_HEIGHT))
 
 		// food := blob.Food{X: x, Y: y}
 		// _, exists := f.foodMap[food]
@@ -85,7 +85,7 @@ func (f *FoodInfo) GetNumFoodsEaten(player *blob.Player) int32 {
 	}
 	// log.Println("Eating: ", foodSlice)
 
-	// bound := orb.Bound{Min: orb.Point{0, 0}, Max: orb.Point{SCREEN_WIDTH, SCREEN_HEIGHT}}
+	// bound := orb.Bound{Min: orb.Point{0, 0}, Max: orb.Point{MAP_WIDTH, MAP_HEIGHT}}
 	// log.Println(f.foodTree.InBound([]orb.Pointer{}, bound))
 
 	return int32(len(foodSlice))
@@ -95,7 +95,7 @@ func (f *FoodInfo) GetFoods() []*blob.Food {
 	f.mux.Lock()
 	defer f.mux.Unlock()
 
-	bound := orb.Bound{Min: orb.Point{0, 0}, Max: orb.Point{SCREEN_WIDTH, SCREEN_HEIGHT}}
+	bound := orb.Bound{Min: orb.Point{0, 0}, Max: orb.Point{MAP_WIDTH, MAP_HEIGHT}}
 	foods := f.foodTree.InBound([]orb.Pointer{}, bound)
 
 	foodSlice := make([]*blob.Food, len(foods))

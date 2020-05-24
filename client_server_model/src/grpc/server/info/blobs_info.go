@@ -11,8 +11,8 @@ import (
 	"math"
 )
 
-const SCREEN_WIDTH = 10000
-const SCREEN_HEIGHT = 10000
+const MAP_WIDTH = 10000
+const MAP_HEIGHT = 10000
 const STARTING_MASS = 20
 const EAT_RADIUS_DELTA = 5
 const SERVER_ID = "server1::"
@@ -31,7 +31,7 @@ func (b *BlobsInfo) InitBlobs() {
 	// TODO change to map
 	b.mux.Lock()
 	b.blobsMap = make(map[string]*blob.Player)
-	b.blobTree = quadtree.New(orb.Bound{Min: orb.Point{0, 0}, Max: orb.Point{SCREEN_WIDTH, SCREEN_HEIGHT}})
+	b.blobTree = quadtree.New(orb.Bound{Min: orb.Point{0, 0}, Max: orb.Point{MAP_WIDTH, MAP_HEIGHT}})
 	b.pointsMap = make(map[orb.Point]*blob.Player)
 	b.mux.Unlock()
 }
@@ -64,14 +64,14 @@ func (b *BlobsInfo) UpdatePos(name string, dx float64, dy float64) (float64, flo
 	updateBlob.Y += dy
 
 	//constrain movement for now
-	if updateBlob.X > SCREEN_WIDTH {
-		updateBlob.X = SCREEN_WIDTH
+	if updateBlob.X > MAP_WIDTH {
+		updateBlob.X = MAP_WIDTH
 	} else if updateBlob.X < 0 {
 		updateBlob.X = 0
 	}
 
-	if updateBlob.Y > SCREEN_HEIGHT {
-		updateBlob.Y = SCREEN_HEIGHT
+	if updateBlob.Y > MAP_HEIGHT {
+		updateBlob.Y = MAP_HEIGHT
 	} else if updateBlob.Y < 0 {
 		updateBlob.Y = 0
 	}
