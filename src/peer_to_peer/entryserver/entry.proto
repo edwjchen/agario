@@ -1,3 +1,6 @@
+syntax = "proto3";
+package entryserver;
+
 service EntryServer {
     rpc Join(JoinRequest) returns (JoinReply) {}
 }
