@@ -3,7 +3,10 @@ package entryserver;
 
 service EntryServer {
     rpc Join(JoinRequest) returns (JoinReply) {}
+    rpc CanStart(CanStartRequest) returns (CanStartReply) {}
 }
+
+message CanStartRequest {}
 
 message JoinRequest {
     string ip = 1;
@@ -12,5 +15,9 @@ message JoinRequest {
 message JoinReply {
     string action = 1;
     string ip = 2;
-    int32 map_length = 3;
+    int32 mapLength = 3;
+}
+
+message CanStartReply {
+    bool canStart = 1;
 }
