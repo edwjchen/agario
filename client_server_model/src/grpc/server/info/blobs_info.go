@@ -107,11 +107,15 @@ func (b *BlobsInfo) UpdateBlobMass(id string, foodInfo *FoodInfo) int32 {
 	defer b.mux.Unlock()
 	player := b.blobsMap[id]
 	oldMass := player.Mass
-	newMass := oldMass + foodInfo.GetNumFoodsEaten(player)
-	player.Mass = newMass
-
+	numFoodEaten := foodInfo.GetNumFoodsEaten(player)
+	randNum := rand.Intn(100)
+	if numFoodEaten > 0 && randNum == 0 && oldMass > STARTING_MASS + STARTING_MASS {
+		player.Mass = oldMass - oldMass/2
+	} else if numFoodEaten > 0 {
+		player.Mass = oldMass + numFoodEaten
+	}
+	return player.Mass
 	// log.Println("newMass: ", newMass)
-	return newMass
 }
 
 func (b *BlobsInfo) EatBlobs(id string) {

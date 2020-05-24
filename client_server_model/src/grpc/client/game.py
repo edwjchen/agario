@@ -4,6 +4,7 @@ import blob_pb2
 import blob_pb2_grpc
 
 import pygame,random,math
+import asyncio
 
 pygame.init()
 PLAYER_COLORS = [(37,7,255),(35,183,253),(48,254,241),(19,79,251),(255,7,230),(255,7,23),(6,254,13)]
