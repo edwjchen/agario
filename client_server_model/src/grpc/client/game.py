@@ -15,6 +15,8 @@ SCREEN_HEIGHT = 500
 surface = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 FOOD_MASS = 7
+ZOOM_CONSTANT = 1
+MAP_LENGTH = 10000
 
 t_surface = pygame.Surface((95,25),pygame.SRCALPHA) #transparent rect for score
 t_lb_surface = pygame.Surface((155,278),pygame.SRCALPHA) #transparent rect for leaderboard
@@ -77,12 +79,20 @@ class Blob:
 
     def move(self):
         dX,dY = pygame.mouse.get_pos()
+        rotation = math.atan2(dY-(float(SCREEN_HEIGHT)/2),dX-(float(SCREEN_WIDTH)/2))*180/math.pi
+        speed = 5-1
+        vx = speed * (90-math.fabs(rotation))/90
+        vy = 0
+        if(rotation < 0):
+            vy = -speed + math.fabs(vx)
+        else:
+            vy = speed - math.fabs(vx)
 
         # print("start pos: ", dX, dY)
         moveRequest = blob_pb2.MoveRequest()
         moveRequest.id = self.name
-        moveRequest.x = dX
-        moveRequest.y = dY
+        moveRequest.x = vx
+        moveRequest.y = vy
         moveResponse = stub.Move(moveRequest)
 
         # print("end pos: ", moveResponse.x, moveResponse.y)
@@ -149,9 +159,9 @@ def spawn_foods(numOfFoods):
     #     food_list.append(food)
 
 def draw_grid():
-    for i in range(0,2001,25):
-        pygame.draw.line(surface,(230,240,240),(int(0+camera.x),int(i*camera.zoom+camera.y)),(int(2001*camera.zoom+camera.x),int(i*camera.zoom+camera.y)),3)
-        pygame.draw.line(surface,(230,240,240),(int(i*camera.zoom+camera.x),int(+camera.y)),(int(i*camera.zoom+camera.x),int(2001*camera.zoom+camera.y)),3)
+    for i in range(0,MAP_LENGTH,25):
+        pygame.draw.line(surface,(230,240,240),(int(0+camera.x),int(i*camera.zoom+camera.y)),(int(MAP_LENGTH*camera.zoom+camera.x),int(i*camera.zoom+camera.y)),3)
+        pygame.draw.line(surface,(230,240,240),(int(i*camera.zoom+camera.x),int(+camera.y)),(int(i*camera.zoom+camera.x),int(MAP_LENGTH*camera.zoom+camera.y)),3)
 
 def draw_leaderboard(leaders):
     LEADERBOARD_X_INSET = 157
@@ -181,7 +191,7 @@ while(True):
             pygame.quit()
             quit()
     blob.update()
-    camera.zoom = 100/(blob.mass)+0.3
+    camera.zoom = ZOOM_CONSTANT/(blob.mass)+0.3
     
     camera.center(blob)
     # print(blob.x, blob.y)

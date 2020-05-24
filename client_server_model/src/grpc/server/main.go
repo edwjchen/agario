@@ -9,14 +9,14 @@ import (
 	// "net/http"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-  "math"
-  "grpc/server/info"
-  "time"
+	// "math"
+	"grpc/server/info"
+	"time"
 	// "github.com/golang/protobuf/proto"
 )
 
-const SCREEN_WIDTH = 800
-const SCREEN_HEIGHT = 500
+const SCREEN_WIDTH = 10000
+const SCREEN_HEIGHT = 10000
 const STARTING_MASS = info.STARTING_MASS
 
 var foodInfo info.FoodInfo
@@ -74,19 +74,20 @@ func (Server) Move(ctx context.Context, request *blob.MoveRequest) (*blob.MoveRe
 		return &response, nil
 	}
 
-	dx := request.GetX()
-	dy := request.GetY()
+	vx := request.GetX()
+	vy := request.GetY()
 
-	// log.Println("get: ", dx, dy)
-	rotation := math.Atan2(dy-SCREEN_HEIGHT/2, dx-SCREEN_WIDTH/2) * 180 / math.Pi
-	vx := speed * (90 - math.Abs(rotation)) / 90
-	var vy float64
-	if rotation < 0 {
-		vy = -1*speed + math.Abs(vx)
-	} else {
-		vy = speed - math.Abs(vx)
-	}
+	// // log.Println("get: ", dx, dy)
+	// rotation := math.Atan2(dy-SCREEN_HEIGHT/2, dx-SCREEN_WIDTH/2) * 180 / math.Pi
+	// vx := speed * (90 - math.Abs(rotation)) / 90
+	// var vy float64
+	// if rotation < 0 {
+	// 	vy = -1*speed + math.Abs(vx)
+	// } else {
+	// 	vy = speed - math.Abs(vx)
+	// }
 
+	log.Println("diff: ", vx, vy)
 	log.Println("send: ", x+vx, y+vy)
 	x, y := blobsInfo.UpdatePos(blobId, vx, vy)
 	newMass := blobsInfo.UpdateBlobMass(blobId, &foodInfo)

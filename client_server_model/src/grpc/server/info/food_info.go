@@ -9,7 +9,7 @@ import (
 	// "log"
 )
 
-const MIN_FOOD_NUM = 50
+const MIN_FOOD_NUM = 5000
 
 type FoodInfo struct {
 	foodTree *quadtree.Quadtree

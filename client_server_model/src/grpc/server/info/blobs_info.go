@@ -11,8 +11,8 @@ import (
 	"math"
 )
 
-const SCREEN_WIDTH = 800
-const SCREEN_HEIGHT = 500
+const SCREEN_WIDTH = 10000
+const SCREEN_HEIGHT = 10000
 const STARTING_MASS = 20
 const EAT_RADIUS_DELTA = 5
 const SERVER_ID = "server1::"
@@ -64,13 +64,13 @@ func (b *BlobsInfo) UpdatePos(name string, dx float64, dy float64) (float64, flo
 	updateBlob.Y += dy
 
 	//constrain movement for now
-	if updateBlob.X > SCREEN_WIDTH * 2 {
+	if updateBlob.X > SCREEN_WIDTH {
 		updateBlob.X = SCREEN_WIDTH
 	} else if updateBlob.X < 0 {
 		updateBlob.X = 0
 	}
 
-	if updateBlob.Y > SCREEN_HEIGHT * 2 {
+	if updateBlob.Y > SCREEN_HEIGHT {
 		updateBlob.Y = SCREEN_HEIGHT
 	} else if updateBlob.Y < 0 {
 		updateBlob.Y = 0
