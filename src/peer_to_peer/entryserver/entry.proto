@@ -8,6 +8,10 @@ service EntryServer {
 
 message CanStartRequest {}
 
+message CanStartReply {
+    bool canStart = 1;
+}
+
 message JoinRequest {
     string ip = 1;
 }
@@ -16,8 +20,4 @@ message JoinReply {
     string action = 1;
     string ip = 2;
     int32 mapLength = 3;
-}
-
-message CanStartReply {
-    bool canStart = 1;
 }
