@@ -4,7 +4,6 @@ import (
 	"google.golang.org/grpc"
 	"net"
 	"log"
-	"sync"
 	"golang.org/x/net/context"
 	"peer_to_peer/entryserver"
 	"peer_to_peer/info"
@@ -16,10 +15,15 @@ const CREATE_ACTION = "CREATE"
 
 const MIN_PLAYERS = 10
 const MAX_PLAYERS = 10000
-const MAP_LENGTH = int32(math.Sqrt(MAX_PLAYERS))
+var MAP_LENGTH int32 = int32(math.Sqrt(MAX_PLAYERS))
+
+var entryInfo info.EntryInfo = info.EntryInfo{MinPlayers: MIN_PLAYERS, MaxPlayers: MAX_PLAYERS, CurrNodes: make([]string, 0)}
 
 func main() {
 	grpcServer := grpc.NewServer()
+	var server EntryServer
+	entryserver.RegisterEntryServerServer(grpcServer, server)
+	
 	listen, err := net.Listen("tcp", "0.0.0.0:3000")
 	if err != nil {
 		log.Fatalf("could not listen to 0.0.0.0:3000 %v", err)
@@ -28,17 +32,17 @@ func main() {
   	log.Fatal(grpcServer.Serve(listen))
 }
 
-entryInfo := EntryInfo{MinPlayers: MIN_PLAYERS, MaxPlayers: MAX_PLAYERS, CurrNodes: make([]string, 0)}
+type EntryServer struct{}
 
 func (EntryServer) CanStart(ctx context.Context, request *entryserver.CanStartRequest) (*entryserver.CanStartReply, error) {
 	/*
 	if 
 	*/
 	response := &entryserver.CanStartReply {
-		CanStart: entryInfo.CanStart()
+		CanStart: entryInfo.CanStart(),
 	}
 
-	return respnse, nil
+	return response, nil
 	
 }
 
@@ -53,14 +57,15 @@ func (EntryServer) Join(ctx context.Context, request *entryserver.JoinRequest) (
 	var ip string
 	if entryInfo.ShouldCreate() {
 		action = JOIN_ACTION
-		ip = //get IP CALL HERE
+		ip = entryInfo.GetNodeIP() //get IP CALL HERE
 	} else {
 		action = CREATE_ACTION
 		ip = joinIp
 	}
-	response := entryserver.JoinReply{
+	response := &entryserver.JoinReply{
 		Action: action,
-		Ip: i,
+		Ip: ip,
 		MapLength: MAP_LENGTH,
 	}
+	return response, nil
 } 

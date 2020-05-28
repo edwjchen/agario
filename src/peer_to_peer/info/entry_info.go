@@ -1,5 +1,10 @@
 package info
 
+import (
+	"math/rand"
+	"sync"
+	"time"
+)
 type EntryInfo struct {
 	mux        sync.Mutex
 	MinPlayers int
