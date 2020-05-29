@@ -28,10 +28,10 @@ message RegionRequest {
   double y = 2;
 }
 message RegionResponse {
-  repeated Player players = 1;
+  repeated Blob blobs = 1;
   repeated Food foods = 2;
 }
-message Player {
+message Blob {
   string string = 1;
   double x = 2;
   double y = 3;
