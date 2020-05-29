@@ -1,9 +1,53 @@
 syntax = "proto3";
 package region;
 service Region {
-  rpc Ping (PingRequest) returns (PingResponse) {}
+  rpc Ping (EmptyRequest) returns (EmptyResponse) {}
+  rpc AddRegion (AddRegionRequest) returns (EmptyResponse) {}
+  rpc GetRegion (IdRegionRequest) returns (GetRegionResponse) {}
+  rpc RemoveRegion (IdRegionRequest) returns (EmptyResponse) {}
+  rpc ClientUpdate (UpdateRegionRequest) returns (UpdateRegionResponse) {}
+  rpc AddFoods (FoodRequest) returns (EmptyResponse) {}
+  rpc RemoveFoods (FoodRequest) returns (EmptyResponse) {}
 }
-message PingRequest {}
-message PingResponse {}
+message EmptyRequest {}
+message EmptyResponse {}
 
+message AddRegionRequest {
+  uint32 id = 1;
+  repeated Food foods = 2;
+}
 
+message IdRegionRequest {
+  uint32 id = 1;
+}
+
+message GetRegionResponse {
+  repeated Blob blobs = 1;
+  repeated Food foods = 2;
+}
+
+message UpdateRegionRequest {
+  Blob blob = 1;
+  uint32 id = 2;
+}
+
+message UpdateRegionResponse {
+  int32 deltaMass = 1;
+  bool alive = 2;
+}
+
+message FoodRequest {
+  repeated Food foods = 1;
+}
+
+message Blob {
+  string string = 1;
+  double x = 2;
+  double y = 3;
+  bool alive = 4;
+  int32 mass = 5;
+}
+message Food {
+  double x = 1;
+  double y = 2;
+}

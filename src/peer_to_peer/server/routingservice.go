@@ -63,8 +63,8 @@ func (r *Router) Heartbeat() {
 			}
 		}
 		// TODO
-		client := region.NewRegionClient(cxn)
-		_, err := client.Ping(context.Background(), &region.PingRequest{})
+		client := region.NewRegionHandlerClient(cxn)
+		_, err := client.Ping(context.Background(), &region.EmptyRequest{})
 		if err != nil {
 			log.Println("Failed ping", err)
 			retChan <- heartbeatOutput{

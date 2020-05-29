@@ -4,8 +4,13 @@ service Player {
   rpc Init (InitRequest) returns (InitResponse) {}
   rpc Move (MoveRequest) returns (MoveResponse) {}
   rpc Region (RegionRequest) returns (RegionResponse) {}
+  rpc MassIncrement (MassIncrementRequest) returns (MassIncrementResponse) {}
 }
-message InitRequest {}
+
+message InitRequest {
+
+}
+
 message InitResponse {
   string id = 1;
   double x = 2;
@@ -30,6 +35,12 @@ message RegionRequest {
 message RegionResponse {
   repeated Blob blobs = 1;
   repeated Food foods = 2;
+}
+message MassIncrementRequest {
+  int32 massIncrease = 1;
+}
+message MassIncrementResponse {
+  
 }
 message Blob {
   string string = 1;
