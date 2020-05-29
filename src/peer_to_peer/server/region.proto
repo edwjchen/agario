@@ -1,9 +1,0 @@
-syntax = "proto3";
-package region;
-service Region {
-  rpc Ping (PingRequest) returns (PingResponse) {}
-}
-message PingRequest {}
-message PingResponse {}
-
-
