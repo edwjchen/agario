@@ -1,4 +1,4 @@
-package main
+package entryserver
 
 import (
 	"google.golang.org/grpc"
