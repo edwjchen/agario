@@ -2,3 +2,6 @@ src/github.com/*
 src/google.golang.org/*
 src/golang.org/*
 *.pyc
+
+bin/
+pkg/
