@@ -1,37 +1,39 @@
 package player
 
+import (
+	"golang.org/x/net/context"
+	"math"
+)
 
-type Player struct{}
+type PlayerHandler struct {
 
-// const SCREEN_WIDTH = 10000
-// const SCREEN_HEIGHT = 10000
+}
+
 const SCREEN_WIDTH = 800
 const SCREEN_HEIGHT = 500
-const STARTING_MASS = 20 //change later
 
 const speed = 4
-var x float64 = 400
-var y float64 = 250
 
-func (Player) Init(ctx context.Context, request *InitRequest) (*InitResponse, error) {
-	newBlobId, startX, startY := blobsInfo.NewBlob()
-	log.Println(newBlobId, "has joined")
-	response := blob.InitResponse{
+var PlayerInfoStruct PlayerInfo
+
+func (PlayerHandler) Init(ctx context.Context, request *InitRequest) (*InitResponse, error) {
+	newBlobId, startX, startY, mass := PlayerInfoStruct.NewBlob()
+	response := InitResponse{
 		Id:   newBlobId,
 		X:    startX,
 		Y:    startY,
-		Mass: STARTING_MASS,
+		Mass: mass,
 	}
+	
 	return &response, nil
 }
 
 // Search function responsible to get the Country information
-func (Player) Move(ctx context.Context, request *blob.MoveRequest) (*blob.MoveResponse, error) {
+func (PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveResponse, error) {
 	//for now just echo response with increment on position
-	blobId := request.GetId()
 
-	if !blobsInfo.IsBlobAlive(blobId) {
-		response := blob.MoveResponse{
+	if !PlayerInfoStruct.GetAlive() {
+		response := MoveResponse{
 			X:     0,
 			Y:     0,
 			Alive: false,
@@ -54,23 +56,28 @@ func (Player) Move(ctx context.Context, request *blob.MoveRequest) (*blob.MoveRe
 		vy = speed - math.Abs(vx)
 	}
 
+	x, y := PlayerInfoStruct.UpdatePos(vx, vy)
 
-	response := blob.MoveResponse{
+	response := MoveResponse{
 		X:     x,
 		Y:     y,
 		Alive: true,
-		Mass:  newMass,
+		Mass:  PlayerInfoStruct.GetMass(),//TODO: change but leave for now
 	}
 
 	return &response, nil
 }
 
-func (Player) Region(ctx context.Context, request *blob.RegionRequest) (*blob.RegionResponse, error) {
+func (PlayerHandler) Region(ctx context.Context, request *RegionRequest) (*RegionResponse, error) {
 
-	response := blob.RegionResponse{
+	response := RegionResponse{
 		Blobs: make([]*Blob, 0),
 		Foods: make([]*Food, 0),
 	}
 
 	return &response, nil
+}
+
+func (PlayerHandler) MassIncrement(ctx context.Context, request *MassIncrementRequest) (*MassIncrementResponse, error) {
+	return nil, nil
 }

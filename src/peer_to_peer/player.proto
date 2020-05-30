@@ -8,7 +8,6 @@ service Player {
 }
 
 message InitRequest {
-
 }
 
 message InitResponse {
