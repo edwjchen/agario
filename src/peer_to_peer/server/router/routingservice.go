@@ -1,4 +1,4 @@
-package server
+package router
 
 //client in python <---> player server <---> region server
 
@@ -8,8 +8,8 @@ import (
 	"log"
 	"time"
 	"google.golang.org/grpc"
-	"peer_to_peer/server/region"
 	"golang.org/x/net/context"
+	"peer_to_peer/server/region_pb"
 	"sort"
 )
 
@@ -63,8 +63,8 @@ func (r *Router) Heartbeat() {
 			}
 		}
 		// TODO
-		client := region.NewRegionHandlerClient(cxn)
-		_, err := client.Ping(context.Background(), &region.EmptyRequest{})
+		client := region_pb.NewRegionClient(cxn)
+		_, err := client.Ping(context.Background(), &region_pb.EmptyRequest{})
 		if err != nil {
 			log.Println("Failed ping", err)
 			retChan <- heartbeatOutput{

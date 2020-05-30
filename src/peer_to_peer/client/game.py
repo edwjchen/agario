@@ -36,9 +36,9 @@ clock = pygame.time.Clock()
 #grpc constants
 #TODO Change stuff here
 channel = grpc.insecure_channel('localhost:3000')
-print('channeled')
+# print('channeled')
 stub = player_pb2_grpc.PlayerStub(channel)
-print('stubbed')
+# print('stubbed')
 
 def drawText(message,pos,color=(255,255,255)):
     pos = (int(pos[0]), int(pos[1]))
@@ -68,9 +68,9 @@ class Camera:
 class Blob:
     def __init__(self,surface,name = ""):
         initRequest = player_pb2.InitRequest()
-        print('Making init req')
+        # print('Making init req')
         initResponse = stub.Init(initRequest)
-        print('Made init req')
+        # print('Made init req')
         self.startX = self.x = initResponse.x
         self.startY = self.y = initResponse.y
         self.mass = initResponse.mass
@@ -90,7 +90,7 @@ class Blob:
         moveRequest.x = dX
         moveRequest.y = dY
         moveResponse = stub.Move(moveRequest)
-        print("Move response: ", moveResponse)
+        # print("Move response: ", moveResponse)
 
         # print("end pos: ", moveResponse.x, moveResponse.y)
         self.x = moveResponse.x
@@ -101,7 +101,7 @@ class Blob:
         regionResponse = stub.Region(regionRequest)
 
         players = regionResponse.blobs
-        print(players)
+        # print(players)
         for player in players:
             if player.name == self.name:
                 #update player mass
@@ -182,7 +182,7 @@ blob = Blob(surface,"Viliami")
 # spawn_foods(2000)
 
 while(True):
-    print('I IS THE TICK')
+    # print('I IS THE TICK')
     clock.tick(70)
     for e in pygame.event.get():
         if(e.type == pygame.QUIT):

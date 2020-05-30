@@ -3,27 +3,20 @@ package player
 import (
 	"golang.org/x/net/context"
 	"math"
+	"peer_to_peer/server/router"
+	"peer_to_peer/server/player_pb"
+	// "peer_to_peer/server/region_pb"
 	// "log"
 )
 
 type PlayerHandler struct {
-
+	Player PlayerInfo
+	Router router.Router
 }
 
-const SCREEN_WIDTH = 800
-const SCREEN_HEIGHT = 500
-const MIN_FOOD_NUM = 50
-
-
-const speed = 4
-
-var PlayerInfoStruct PlayerInfo
-
-func (ph *PlayerHandler) Init(ctx context.Context, request *InitRequest) (*InitResponse, error) {
-	// log.Println("got init")
-	newBlobId, startX, startY, mass := PlayerInfoStruct.NewBlob()
-	// log.Println("made new blob")
-	response := InitResponse{
+func (ph *PlayerHandler) Init(ctx context.Context, request *player_pb.InitRequest) (*player_pb.InitResponse, error) {
+	newBlobId, startX, startY, mass := ph.Player.NewBlob()
+	response := player_pb.InitResponse{
 		Id:   newBlobId,
 		X:    startX,
 		Y:    startY,
@@ -34,11 +27,11 @@ func (ph *PlayerHandler) Init(ctx context.Context, request *InitRequest) (*InitR
 }
 
 // Search function responsible to get the Country information
-func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveResponse, error) {
+func (ph *PlayerHandler) Move(ctx context.Context, request *player_pb.MoveRequest) (*player_pb.MoveResponse, error) {
 	// for now just echo response with increment on position
 	// log.Println("Moving!")
-	if !PlayerInfoStruct.GetAlive() {
-		response := MoveResponse{
+	if !ph.Player.GetAlive() {
+		response := player_pb.MoveResponse{
 			X:     0,
 			Y:     0,
 			Alive: false,
@@ -55,36 +48,51 @@ func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveR
 
 	// log.Println("get: ", dx, dy)
 	rotation := math.Atan2(dy-SCREEN_HEIGHT/2, dx-SCREEN_WIDTH/2) * 180 / math.Pi
-	vx := speed * (90 - math.Abs(rotation)) / 90
+	vx := SPEED * (90 - math.Abs(rotation)) / 90
 	var vy float64
 	if rotation < 0 {
-		vy = -1*speed + math.Abs(vx)
+		vy = -1*SPEED+ math.Abs(vx)
 	} else {
-		vy = speed - math.Abs(vx)
+		vy = SPEED - math.Abs(vx)
 	}
 	// log.Println("vx & vy", vx, vy)
 
-	x, y := PlayerInfoStruct.UpdatePos(vx, vy)
+	x, y := ph.Player.UpdatePos(vx, vy)
 
-	response := MoveResponse{
+	response := player_pb.MoveResponse{
 		X:     x,
 		Y:     y,
 		Alive: true,
-		Mass:  PlayerInfoStruct.GetMass(),//TODO: change but leave for now
+		Mass:  ph.Player.GetMass(),//TODO: change but leave for now
 	}
 
 	return &response, nil
 }
 
-func (ph *PlayerHandler) Region(ctx context.Context, request *RegionRequest) (*RegionResponse, error) {
-	response := RegionResponse{
-		Blobs: []*Blob{PlayerInfoStruct.GetBlob()},
-		Foods: make([]*Food, 0),
+func (ph *PlayerHandler) Region(ctx context.Context, request *player_pb.RegionRequest) (*player_pb.RegionResponse, error) {
+	// regionId := request.GetId()
+	// conn := ph.router.Get(regionId)
+	// regionClient := region_pb.NewRegionClient(conn)
+
+	// regionRequest := &region_pb.IdRegionRequest{Id: regionId}
+	// getRegionResponse, _ := regionClient.GetRegion(context.Background(), regionRequest)
+
+	// response := region_pb.RegionResponse{
+	// 	Blobs: getRegionResponse.Blobs,
+	// 	Foods: getRegionResponse.Foods,
+	// }
+
+	response := player_pb.RegionResponse{
+		Blobs: []*player_pb.Blob{ph.Player.GetBlob()},
+		Foods: make([]*player_pb.Food, 0),
 	}
 
 	return &response, nil
 }
 
-func (ph *PlayerHandler) MassIncrement(ctx context.Context, request *MassIncrementRequest) (*MassIncrementResponse, error) {
+func (ph *PlayerHandler) MassIncrement(ctx context.Context, request *player_pb.MassIncrementRequest) (*player_pb.MassIncrementResponse, error) {
+	deltaMass := request.GetMassIncrease()
+	ph.Player.IncrementMass(deltaMass)
+
 	return nil, nil
 }

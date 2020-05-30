@@ -2,6 +2,7 @@ package player
 
 import (
 	"sync"
+	. "peer_to_peer/server/player_pb"
 	// "log"
 )
 
@@ -10,10 +11,6 @@ type PlayerInfo struct {
 	mux  sync.Mutex
 	addr string
 }
-
-const STARTING_MASS = 20
-const MAP_WIDTH = 10000
-const MAP_HEIGHT = 10000
 
 func (p *PlayerInfo) InitIP(addr string) {
 	p.mux.Lock()
@@ -81,3 +78,14 @@ func (p *PlayerInfo) UpdatePos(dx float64, dy float64) (float64, float64) {
 	return updateBlob.X, updateBlob.Y
 }
 
+func (p *PlayerInfo) IncrementMass(deltaMass int32) {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	p.blob.Mass += deltaMass
+}
+
+// Returns a list of regions
+func (p *PlayerInfo) GetAOI() {
+
+}
