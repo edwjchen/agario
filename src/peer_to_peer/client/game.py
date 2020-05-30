@@ -1,10 +1,12 @@
 #imports for grpc
 import grpc
-import blob_pb2
-import blob_pb2_grpc
+import player_pb2
+import player_pb2_grpc
 
 import pygame,random,math
 import asyncio
+
+from collections import namedtuple
 
 pygame.init()
 PLAYER_COLORS = [(37,7,255),(35,183,253),(48,254,241),(19,79,251),(255,7,230),(255,7,23),(6,254,13)]
@@ -32,8 +34,11 @@ food_list = list()
 clock = pygame.time.Clock()
 
 #grpc constants
+#TODO Change stuff here
 channel = grpc.insecure_channel('localhost:3000')
-stub = blob_pb2_grpc.BlobStub(channel)
+print('channeled')
+stub = player_pb2_grpc.PlayerStub(channel)
+print('stubbed')
 
 def drawText(message,pos,color=(255,255,255)):
     pos = (int(pos[0]), int(pos[1]))
@@ -56,15 +61,16 @@ class Camera:
         self.height = SCREEN_HEIGHT
         self.zoom = 0.5
 
-    def center(self,blobOrPos):
-        p = blobOrPos
+    def center(self,p):
         self.x = (p.startX-(p.x*self.zoom))-p.startX+((SCREEN_WIDTH/2))
         self.y = (p.startY-(p.y*self.zoom))-p.startY+((SCREEN_HEIGHT/2))
 
 class Blob:
     def __init__(self,surface,name = ""):
-        initRequest = blob_pb2.InitRequest()
+        initRequest = player_pb2.InitRequest()
+        print('Making init req')
         initResponse = stub.Init(initRequest)
+        print('Made init req')
         self.startX = self.x = initResponse.x
         self.startY = self.y = initResponse.y
         self.mass = initResponse.mass
@@ -79,24 +85,25 @@ class Blob:
 
     def move(self):
         dX,dY = pygame.mouse.get_pos()
-        moveRequest = blob_pb2.MoveRequest()
+        moveRequest = player_pb2.MoveRequest()
         moveRequest.id = self.name
         moveRequest.x = dX
         moveRequest.y = dY
         moveResponse = stub.Move(moveRequest)
+        print("Move response: ", moveResponse)
 
         # print("end pos: ", moveResponse.x, moveResponse.y)
         self.x = moveResponse.x
         self.y = moveResponse.y
 
     def draw(self,cam):
-        regionRequest = blob_pb2.RegionRequest()
+        regionRequest = player_pb2.RegionRequest()
         regionResponse = stub.Region(regionRequest)
 
-        players = regionResponse.players
-        # print(players)
+        players = regionResponse.blobs
+        print(players)
         for player in players:
-            if player.id == self.name:
+            if player.name == self.name:
                 #update player mass
                 self.x = player.x
                 self.y = player.y
@@ -107,9 +114,9 @@ class Blob:
             y = cam.y
             pygame.draw.circle(self.surface,(col[0]-int(col[0]/3),int(col[1]-col[1]/3),int(col[2]-col[2]/3)),(int(player.x*zoom+x),int(player.y*zoom+y)),int((player.mass/2+3)*zoom))
             pygame.draw.circle(self.surface,col,(int(player.x*cam.zoom+cam.x),int(player.y*cam.zoom+cam.y)),int(player.mass/2*zoom))
-            if(len(player.id) > 0):
-                fw, fh = font.size(player.id)
-                drawText(player.id, (player.x*cam.zoom+cam.x-int(fw/2),player.y*cam.zoom+cam.y-int(fh/2)),(50,50,50))
+            if(len(player.name) > 0):
+                fw, fh = font.size(player.name)
+                drawText(player.name, (player.x*cam.zoom+cam.x-int(fw/2),player.y*cam.zoom+cam.y-int(fh/2)),(50,50,50))
 
         foods = regionResponse.foods
         for food in foods:
@@ -175,6 +182,7 @@ blob = Blob(surface,"Viliami")
 # spawn_foods(2000)
 
 while(True):
+    print('I IS THE TICK')
     clock.tick(70)
     for e in pygame.event.get():
         if(e.type == pygame.QUIT):
@@ -193,5 +201,5 @@ while(True):
     blob.draw(camera)
 
     draw_HUD()
-    draw_leaderboard(['testing'])
+    # draw_leaderboard(['testing'])
     pygame.display.flip()

@@ -2,6 +2,7 @@ package player
 
 import (
 	"sync"
+	// "log"
 )
 
 type PlayerInfo struct {
@@ -27,26 +28,39 @@ func (p *PlayerInfo) NewBlob() (string, float64, float64, int32) {
 
 	var x float64 = 400.0
 	var y float64 = 200.0
-	p.blob = Blob{Name: p.addr, X: x, Y: y, Mass: STARTING_MASS}
+	p.blob = Blob{Name: p.addr, X:x, Y: y, Mass: STARTING_MASS, Alive: true}
 	return p.addr, x, y, STARTING_MASS
 }
 
 func (p *PlayerInfo) GetAlive() bool {
 	p.mux.Lock()
-	defer p.mux.Lock()
+	defer p.mux.Unlock()
 	return p.blob.Alive
 }
 
 func (p *PlayerInfo) GetMass() int32 {
 	p.mux.Lock()
-	defer p.mux.Lock()
+	defer p.mux.Unlock()
 	return p.blob.Mass
+}
+
+func (p *PlayerInfo) GetBlob() *Blob {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+	b := &Blob{
+		Name: p.blob.Name,
+		X: p.blob.X,
+		Y: p.blob.Y,
+		Mass: p.blob.Mass,
+		Alive: p.blob.Alive,
+	}
+	return b
 }
 
 func (p *PlayerInfo) UpdatePos(dx float64, dy float64) (float64, float64) {
 	p.mux.Lock()
 	defer p.mux.Unlock()
-	updateBlob := p.blob
+	updateBlob := &p.blob
 
 	updateBlob.X += dx
 	updateBlob.Y += dy
@@ -63,7 +77,7 @@ func (p *PlayerInfo) UpdatePos(dx float64, dy float64) (float64, float64) {
 	} else if updateBlob.Y < 0 {
 		updateBlob.Y = 0
 	}
-	// log.Println(name, " is at pos ", updateBlob.x, updateBlob.y)
+	// log.Println(updateBlob.X, updateBlob.Y)
 	return updateBlob.X, updateBlob.Y
 }
 

@@ -16,9 +16,9 @@ func main() {
 	
 	player.PlayerInfoStruct.InitIP(playerAddr)
 	playerGrpcServer := grpc.NewServer()
-	var playerHandler player.PlayerHandler
-	player.RegisterPlayerServer(playerGrpcServer, playerHandler)
-	playerListener, err := net.Listen("tcp", "0.0.0.0:3000")
+	var playerHandler player.PlayerHandler = player.PlayerHandler{}
+	player.RegisterPlayerServer(playerGrpcServer, &playerHandler)
+	playerListener, err := net.Listen("tcp", "localhost:3000")
 	if err != nil {
 		log.Fatalf("could not listen to 0.0.0.0:3000 %v", err)
 	}
@@ -31,7 +31,7 @@ func main() {
 	// go router.Heartbeat()
 
 	// regionGrpcServer := grpc.NewServer()
-	// var regionHanler region.RegionHandler
+	// var regionHandler region.RegionHandler
 	// region.RegisterRegionHandlerServer(regionGrpcServer, regionHandler)
 	// regionListener, err := net.Listen("tcp", "0.0.0.0:3001")
 	// if err != nil {
