@@ -2,7 +2,7 @@ package player
 
 import (
 	"sync"
-	. "peer_to_peer/server/player_pb"
+	. "peer_to_peer/common"
 	// "log"
 )
 

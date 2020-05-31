@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"peer_to_peer/server/player"
-	"peer_to_peer/server/player_pb"
 	"peer_to_peer/server/region"
 	"peer_to_peer/server/router"
 )
@@ -23,7 +22,7 @@ func main() {
 	// player.PlayerInfoStruct.InitIP(playerAddr)
 	playerGrpcServer := grpc.NewServer()
 	
-	player_pb.RegisterPlayerServer(playerGrpcServer, &playerHandler)
+	player.RegisterPlayerHandlerServer(playerGrpcServer, &playerHandler)
 	playerListener, err := net.Listen("tcp", "localhost:3000")
 	if err != nil {
 		log.Fatalf("could not listen to 0.0.0.0:3000 %v", err)

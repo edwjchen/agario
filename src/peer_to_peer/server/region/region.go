@@ -6,7 +6,7 @@ import (
 	// "peer_to_peer/server/player"
 	"sync"
 	// . "peer_to_peer/server/player_pb"
-	"peer_to_peer/server/region_pb"
+	. "peer_to_peer/common"
 )
 
 type RegionHandler struct{
@@ -14,50 +14,50 @@ type RegionHandler struct{
 	mux     sync.RWMutex
 }
 
-func (rh *RegionHandler) Ping(ctx context.Context, request *region_pb.EmptyRequest) (*region_pb.EmptyResponse, error) {
-	response := region_pb.EmptyResponse{}
+func (rh *RegionHandler) Ping(ctx context.Context, request *EmptyRequest) (*EmptyResponse, error) {
+	response := EmptyResponse{}
 	return &response, nil
 }
 
-func (rh *RegionHandler) AddRegion(ctx context.Context, request *region_pb.AddRegionRequest) (*region_pb.EmptyResponse, error) {
-	response := region_pb.EmptyResponse{}
+func (rh *RegionHandler) AddRegion(ctx context.Context, request *AddRegionRequest) (*EmptyResponse, error) {
+	response := EmptyResponse{}
 	return &response, nil
 }
 
-func (rh *RegionHandler) GetRegion(ctx context.Context, request *region_pb.IdRegionRequest) (*region_pb.GetRegionResponse, error) {
+func (rh *RegionHandler) GetRegion(ctx context.Context, request *IdRegionRequest) (*GetRegionResponse, error) {
 	rh.mux.RLock()
 	regionId := request.GetId()
 	region, _ := rh.Regions[regionId]
 	rh.mux.RUnlock()
 
-	allPlayers := make(map[string]*region_pb.Blob)
+	allPlayers := make(map[string]*Blob)
 	for name, p := range region.GetSeen() {
 		allPlayers[name] = p.GetBlob()
 	}
 	for name, p := range region.GetIn() {
 		allPlayers[name] = p.GetBlob()
 	}
-	blobs := []*region_pb.Blob{}
+	blobs := []*Blob{}
 	for _, blob := range allPlayers {
 		blobs = append(blobs, blob)
 	}
 
-	response := region_pb.GetRegionResponse{
+	response := GetRegionResponse{
 		Blobs:     blobs,
 		Foods:     region.GetFood(),
 	}
 	return &response, nil
 }
 
-func (rh *RegionHandler) RemoveRegion(ctx context.Context, request *region_pb.IdRegionRequest) (*region_pb.EmptyResponse, error) {
+func (rh *RegionHandler) RemoveRegion(ctx context.Context, request *IdRegionRequest) (*EmptyResponse, error) {
 	//send quit channel
 	//close quit channel 
 	
-	response := region_pb.EmptyResponse{}
+	response := EmptyResponse{}
 	return &response, nil
 }
 
-func (rh *RegionHandler) ClientUpdate(ctx context.Context, request *region_pb.UpdateRegionRequest) (*region_pb.UpdateRegionResponse, error) {
+func (rh *RegionHandler) ClientUpdate(ctx context.Context, request *UpdateRegionRequest) (*UpdateRegionResponse, error) {
 	regionId := request.GetId()
 	rh.mux.RLock()
 	region, _ := rh.Regions[regionId]
@@ -66,11 +66,13 @@ func (rh *RegionHandler) ClientUpdate(ctx context.Context, request *region_pb.Up
 	updatedBlob := request.GetBlob()
 	if !updatedBlob.Alive {
 		// Remove blob from cache
-		region.mux.Lock()
+		region.playerInMux.Lock()
 		delete(region.PlayersIn, updatedBlob.Name)
+		region.playerInMux.Unlock()
+		region.playerSeenMux.Lock()
 		delete(region.PlayersSeen, updatedBlob.Name)
-		region.mux.Unlock()
-		response := region_pb.UpdateRegionResponse {
+		region.playerSeenMux.Unlock()
+		response := UpdateRegionResponse {
 			DeltaMass: 0,
 			Alive: false,
 		}
@@ -95,16 +97,16 @@ func (rh *RegionHandler) ClientUpdate(ctx context.Context, request *region_pb.Up
 	// }
 
 
-	response := region_pb.UpdateRegionResponse{}
+	response := UpdateRegionResponse{}
 	return &response, nil
 }
 
-func (rh *RegionHandler) AddFoods(ctx context.Context, request *region_pb.FoodRequest) (*region_pb.EmptyResponse, error) {
-	response := region_pb.EmptyResponse{}
+func (rh *RegionHandler) AddFoods(ctx context.Context, request *FoodRequest) (*EmptyResponse, error) {
+	response := EmptyResponse{}
 	return &response, nil
 }
 
-func (rh *RegionHandler) RemoveFoods(ctx context.Context, request *region_pb.FoodRequest) (*region_pb.EmptyResponse, error) {
-	response := region_pb.EmptyResponse{}
+func (rh *RegionHandler) RemoveFoods(ctx context.Context, request *FoodRequest) (*EmptyResponse, error) {
+	response := EmptyResponse{}
 	return &response, nil
 }

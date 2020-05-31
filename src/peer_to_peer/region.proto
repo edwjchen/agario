@@ -1,5 +1,6 @@
 syntax = "proto3";
 package region;
+import "common/common.proto";
 service Region {
   rpc Ping (EmptyRequest) returns (EmptyResponse) {}
   rpc AddRegion (AddRegionRequest) returns (EmptyResponse) {}
@@ -14,7 +15,7 @@ message EmptyResponse {}
 
 message AddRegionRequest {
   uint32 id = 1;
-  repeated Food foods = 2;
+  repeated common.Food foods = 2;
 }
 
 message IdRegionRequest {
@@ -22,12 +23,12 @@ message IdRegionRequest {
 }
 
 message GetRegionResponse {
-  repeated Blob blobs = 1;
-  repeated Food foods = 2;
+  repeated common.Blob blobs = 1;
+  repeated common.Food foods = 2;
 }
 
 message UpdateRegionRequest {
-  Blob blob = 1;
+  common.Blob blob = 1;
   uint32 id = 2;
 }
 
@@ -37,17 +38,7 @@ message UpdateRegionResponse {
 }
 
 message FoodRequest {
-  repeated Food foods = 1;
+  repeated common.Food foods = 1;
 }
 
-message Blob {
-  string name = 1;
-  double x = 2;
-  double y = 3;
-  bool alive = 4;
-  int32 mass = 5;
-}
-message Food {
-  double x = 1;
-  double y = 2;
-}
+
