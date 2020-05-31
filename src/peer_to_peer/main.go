@@ -5,9 +5,11 @@ import (
 	"net"
 	"log"
 	"os"
-	"peer_to_peer/server/player"
-	"peer_to_peer/server/region"
 	"peer_to_peer/server/router"
+	"peer_to_peer/server/region"
+	"peer_to_peer/server/player"
+	"peer_to_peer/server/player_pb"
+	"peer_to_peer/server/region_pb"
 )
 
 func main() {
@@ -22,7 +24,7 @@ func main() {
 	// player.PlayerInfoStruct.InitIP(playerAddr)
 	playerGrpcServer := grpc.NewServer()
 	
-	player.RegisterPlayerHandlerServer(playerGrpcServer, &playerHandler)
+	player_pb.RegisterPlayerServer(playerGrpcServer, &playerHandler)
 	playerListener, err := net.Listen("tcp", "localhost:3000")
 	if err != nil {
 		log.Fatalf("could not listen to 0.0.0.0:3000 %v", err)
@@ -33,12 +35,12 @@ func main() {
 
 	regionGrpcServer := grpc.NewServer()
 	var regionHandler region.RegionHandler
-	region.RegisterRegionHandlerServer(regionGrpcServer, regionHandler)
+	region_pb.RegisterRegionServer(regionGrpcServer, &regionHandler)
 	regionListener, err := net.Listen("tcp", "0.0.0.0:3001")
 	if err != nil {
 		log.Fatalf("could not listen to 0.0.0.0:3001 %v", err)
 	}
-	log.Println("RegionHandler Server starting...")
+	log.Println("RegionHandler starting...")
 	log.Fatal(regionGrpcServer.Serve(regionListener))
 
 }

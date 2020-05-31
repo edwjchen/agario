@@ -5,7 +5,7 @@ import (
 	// "github.com/paulmach/orb/quadtree"
 	// "peer_to_peer/server/player"
 	"sync"
-	// . "peer_to_peer/server/player_pb"
+	. "peer_to_peer/server/region_pb"
 	. "peer_to_peer/common"
 )
 
