@@ -16,7 +16,7 @@ func main() {
 
 	playerAddr := os.Args[1]
 	
-	router := router.Router{}
+	router := &router.Router{}
 	router.Init([]string{"localhost:3001"})
 	go router.Heartbeat()
 	var playerHandler player.PlayerHandler = player.PlayerHandler{Router: router}
@@ -34,7 +34,7 @@ func main() {
 	// log.Fatal(playerGrpcServer.Serve(playerListener))
 
 	regionGrpcServer := grpc.NewServer()
-	var regionHandler region.RegionHandler
+	var regionHandler region.RegionHandler = region.RegionHandler{Router: router}
 	region_pb.RegisterRegionServer(regionGrpcServer, &regionHandler)
 	regionListener, err := net.Listen("tcp", "0.0.0.0:3001")
 	if err != nil {

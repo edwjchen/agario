@@ -6,8 +6,6 @@ import (
 	"time"
 	"math"
 	"math/rand"
-	"hash/fnv"
-	"encoding/binary"
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/quadtree"
 	. "peer_to_peer/common"
@@ -18,8 +16,8 @@ type RegionInfo struct {
 	PlayersIn     map[string]*player.PlayerInfo
 	PlayersSeen   map[string]*player.PlayerInfo
 	foodMux       sync.Mutex
-	playerInMux   sync.Mutex
-	playerSeenMux sync.Mutex
+	PlayerInMux   sync.Mutex
+	PlayerSeenMux sync.Mutex
 	x        uint16   
 	y        uint16   
 	xmin     float64 
@@ -32,8 +30,8 @@ type RegionInfo struct {
 
 func (r *RegionInfo) NewRegion(x uint16, y uint16, hash uint32) {
 	r.foodMux.Lock()
-	r.playerInMux.Lock()
-	r.playerSeenMux.Lock()
+	r.PlayerInMux.Lock()
+	r.PlayerSeenMux.Lock()
 	r.FoodTree = quadtree.New(orb.Bound{Min: orb.Point{0, 0}, Max: orb.Point{player.MAP_WIDTH, player.MAP_HEIGHT}})
 	r.PlayersIn = make(map[string]*player.PlayerInfo)
 	r.PlayersSeen = make(map[string]*player.PlayerInfo)
@@ -43,6 +41,7 @@ func (r *RegionInfo) NewRegion(x uint16, y uint16, hash uint32) {
 	r.xmax = float64(x + 1) * 500.0 
 	r.ymin = float64(y) * 500.0
 	r.ymax = float64(y + 1) * 500.0
+	// TODO compute hash
 	r.hash = hash
 	go func() {
 		<-time.Tick(time.Second)
@@ -56,8 +55,8 @@ func (r *RegionInfo) NewRegion(x uint16, y uint16, hash uint32) {
 		}
 	}()
 	r.foodMux.Unlock()
-	r.playerInMux.Unlock()
-	r.playerSeenMux.Unlock()
+	r.PlayerInMux.Unlock()
+	r.PlayerSeenMux.Unlock()
 }
 
 func (r *RegionInfo) GetFood() []*Food {
@@ -75,16 +74,24 @@ func (r *RegionInfo) GetFood() []*Food {
 }
 
 func (r *RegionInfo) GetIn() map[string]*player.PlayerInfo {
-	r.playerInMux.Lock()
-	defer r.playerInMux.Unlock()
-	copy := r.PlayersIn
+	r.PlayerInMux.Lock()
+	defer r.PlayerInMux.Unlock()
+	copy := make(map[string]*player.PlayerInfo)
+	for k,v := range r.PlayersIn {
+		copy[k] = v
+	}
+	// copy := r.PlayersIn
 	return copy
 }
 
 func (r *RegionInfo) GetSeen() map[string]*player.PlayerInfo {
-	r.playerSeenMux.Lock()
-	defer r.playerSeenMux.Unlock()
-	copy := r.PlayersSeen
+	r.PlayerSeenMux.Lock()
+	defer r.PlayerSeenMux.Unlock()
+	copy := make(map[string]*player.PlayerInfo)
+	for k,v := range r.PlayersSeen {
+		copy[k] = v
+	}
+	// copy := r.PlayersSeen
 	return copy
 }
 
@@ -133,13 +140,8 @@ func (r *RegionInfo) GetNumFoodsEaten(blob *Blob) int32 {
 	return int32(len(foodSlice))
 }
 
-func GetRegionID(x, y uint16) uint32 {
-	hasher := fnv.New32a()
-	b := make([]byte, 4)
-	binary.LittleEndian.PutUint32(b, uint32(x) << 16 | uint32(y))
-	hasher.Write(b)
-	hash := uint32(hasher.Sum32())
-	return hash
+func getRegionID(x, y uint16) uint32 {
+	return uint32(x) << 16 | uint32(y)
 }
 
 func (r *RegionInfo) BlobIsIn(blob *Blob) bool {
@@ -147,8 +149,6 @@ func (r *RegionInfo) BlobIsIn(blob *Blob) bool {
 }
 
 func (r *RegionInfo) WasEaten(blob *Blob) (bool, *Blob) {
-	r.playerSeenMux.Lock()
-	defer r.playerSeenMux.Unlock()
 
 	blobRadius := float64(blob.Mass / 2)
 	// playerBound := orb.Bound{
@@ -156,8 +156,8 @@ func (r *RegionInfo) WasEaten(blob *Blob) (bool, *Blob) {
 	// 	Max: orb.Point{blob.X + blobRadius, blob.Y + blobRadius},
 	// }
 
-	for name, playerSeen := range r.PlayersSeen {
-		if name == blob.Name {
+	for ip, playerSeen := range r.PlayersSeen {
+		if ip == blob.Ip {
 			continue
 		}
 

@@ -7,6 +7,7 @@ import (
 	"sync"
 	"log"
 	"time"
+	"encoding/binary"
 	"google.golang.org/grpc"
 	"golang.org/x/net/context"
 	"peer_to_peer/server/region_pb"
@@ -15,7 +16,9 @@ import (
 
 type Router struct {
 	lock sync.Mutex 
-	conns map[string] *grpc.ClientConn// map from ip of ip to connections
+	playerLock sync.RWMutex 
+	conns map[string] *grpc.ClientConn // map from ip of ip to connections
+	playerConns map[string] *grpc.ClientConn
 	iphash map[string]uint32
 	haship map[uint32]string
 	liveBacks []uint32 // stores hashes of ip
@@ -32,6 +35,7 @@ func (r *Router) Init(servers []string) {
 	r.haship = make(map[uint32]string)
 	r.iphash = make(map[string]uint32)
 	r.conns = make(map[string] *grpc.ClientConn)
+	r.playerConns = make(map[string] *grpc.ClientConn)
 	for _, ip := range(servers) {
 		hasher := fnv.New32a()
 		hasher.Write([]byte(ip))
@@ -56,7 +60,6 @@ func (r *Router) Heartbeat() {
 					ip:   ip,
 					conn: nil,
 				}
-				
 				return
 			} else {
 				cxn = conn
@@ -107,10 +110,12 @@ func (r *Router) Heartbeat() {
 }
 
 // Returns GRPC connection
-func (r *Router) Get(key string) *grpc.ClientConn {
+func (r *Router) Get(key uint32) *grpc.ClientConn {
 	// return grpc connection of head of chain
 	hasher := fnv.New32a()
-	hasher.Write([]byte(key))
+	b := make([]byte, 4)
+	binary.LittleEndian.PutUint32(b, key)
+	hasher.Write(b)
 	hash := uint32(hasher.Sum32())
 
 	primaryHash := r.successor(hash)
@@ -119,6 +124,32 @@ func (r *Router) Get(key string) *grpc.ClientConn {
 	return r.conns[r.haship[primaryHash]]
 }
 
+func (r *Router) GetPlayerConn(addr string) *grpc.ClientConn {
+	r.playerLock.RLock()
+	cxn, ok := r.playerConns[addr]
+	r.playerLock.RUnlock()
+
+	if !ok {
+		conn, err := grpc.Dial(addr, grpc.WithInsecure())
+		if err != nil {
+			log.Println("Failed dail", err)
+			return nil
+		} else {
+			cxn = conn
+			r.playerLock.Lock()
+			r.playerConns[addr] = conn
+			r.playerLock.Unlock()
+		}
+	}
+	return cxn
+}
+
+// precondition: clients of this lib will only attempt to invalidate existing client connection
+func (r *Router) InvalidatePlayerConn(addr string) {
+	r.playerLock.Lock()
+	defer r.playerLock.Unlock()
+	r.playerConns[addr] = nil
+}
 // Returns GRPC connection
 func (r *Router) GetSuccessor() *grpc.ClientConn {
 	// get whatever is after us in aliveBacks

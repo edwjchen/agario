@@ -12,3 +12,6 @@ const REGION_MAP_HEIGHT = 500
 
 const SPEED = 4
 const EAT_RADIUS_DELTA = 5
+const ZOOM = 100
+
+const VER_FILE = "~/agarioVer"

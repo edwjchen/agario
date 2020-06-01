@@ -1,11 +1,12 @@
 syntax = "proto3";
 package common;
 message Blob {
-  string name = 1;
+  string ip = 1;
   double x = 2;
   double y = 3;
   bool alive = 4;
   int32 mass = 5;
+  int32 ver = 6;
 }
 message Food {
   double x = 1;

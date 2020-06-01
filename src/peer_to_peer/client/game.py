@@ -5,8 +5,7 @@ import player_pb2_grpc
 
 import pygame,random,math
 import asyncio
-
-from collections import namedtuple
+import time
 
 pygame.init()
 PLAYER_COLORS = [(37,7,255),(35,183,253),(48,254,241),(19,79,251),(255,7,230),(255,7,23),(6,254,13)]
@@ -108,6 +107,7 @@ class Blob:
                 self.x = player.x
                 self.y = player.y
                 self.mass = player.mass
+                self.alive = player.alive
             col = self.color
             zoom = cam.zoom
             x = cam.x
@@ -190,6 +190,7 @@ while(True):
             quit()
     blob.update()
     camera.zoom = ZOOM_CONSTANT/(blob.mass)+0.3
+    print("zoom:", camera.zoom)
 
     camera.center(blob)
     # print(blob.x, blob.y)
@@ -199,6 +200,13 @@ while(True):
     # for c in food_list:
     #     c.draw(camera)
     blob.draw(camera)
+    if not blob.alive:
+        channel.close()
+        time.sleep(10)
+        channel = grpc.insecure_channel('localhost:3000')
+        stub = player_pb2_grpc.PlayerStub(channel)
+        blob = Blob(surface,"Viliami")
+        continue
 
     draw_HUD()
     # draw_leaderboard(['testing'])

@@ -5,20 +5,21 @@ import (
 	"math"
 	"peer_to_peer/server/router"
 	. "peer_to_peer/common"
-	// . "peer_to_peer/server/region_pb"
+	. "peer_to_peer/server/region_pb"
 	. "peer_to_peer/server/player_pb"
 	// "log"
 )
 
 type PlayerHandler struct {
 	Player PlayerInfo
-	Router router.Router
+	Router *router.Router
 }
 
 func (ph *PlayerHandler) Init(ctx context.Context, request *InitRequest) (*InitResponse, error) {
-	newBlobId, startX, startY, mass := ph.Player.NewBlob()
+	newBlobIp, startX, startY, mass, ver := ph.Player.NewBlob()
 	response := InitResponse{
-		Id:   newBlobId,
+		Ip:   newBlobIp,
+		Ver:  ver,
 		X:    startX,
 		Y:    startY,
 		Mass: mass,
@@ -65,6 +66,29 @@ func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveR
 		Y:     y,
 		Alive: true,
 		Mass:  ph.Player.GetMass(),//TODO: change but leave for now
+	}
+
+	regions := ph.Player.GetAOI() // returns list of region_id
+	resChan := make(chan bool)
+	blob := ph.Player.GetBlob()
+	regionCall := func(regionId uint32, c chan bool) {
+		// use router to get the grpc clientconn, 
+		conn := ph.Router.Get(regionId)
+		// create client stub from clientconn
+		regionClient := NewRegionClient(conn)
+		clientUpdate := UpdateRegionRequest{Blob: blob, Id: regionId}
+		regionClient.ClientUpdate( context.Background(), &clientUpdate )
+
+		// call method on goroutine
+		c <- true
+	}
+
+	for _, regionId := range(regions) {
+		regionCall(regionId, resChan)
+	}
+
+	for _ = range(regions) {
+		<-resChan
 	}
 
 	return &response, nil
