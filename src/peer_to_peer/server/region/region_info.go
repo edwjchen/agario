@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 	"math"
-	// "math/rand"
+	"math/rand"
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/quadtree"
 	. "peer_to_peer/common"
@@ -109,22 +109,22 @@ func (r *RegionInfo) spawnFood() {
 	r.foodMux.Lock()
 	defer r.foodMux.Unlock()
 
-	// spawnRandNum := rand.Intn(player.MIN_FOOD_NUM)
+	// TODO: Check if we have enought food
 
-	// for i := 0; i < spawnRandNum; i++ {
-	// 	x := float64(rand.Intn(player.REGION_MAP_WIDTH)) + r.xmin
-    // 	y := float64(rand.Intn(player.REGION_MAP_HEIGHT))+ r.ymin
+	spawnRandNum := rand.Intn(2)
 
-	// 	foodPoint := orb.Point{x, y}
+	for i := 0; i < spawnRandNum; i++ {
+		x := float64(rand.Intn(player.REGION_MAP_WIDTH)) + r.xmin
+    	y := float64(rand.Intn(player.REGION_MAP_HEIGHT))+ r.ymin
 
-	// 	r.FoodTree.Add(foodPoint)
-	// }
+		foodPoint := orb.Point{x, y}
+
+		r.FoodTree.Add(foodPoint)
+	}
 }
 
 
 func (r *RegionInfo) removeFood(foodPointer orb.Pointer) {
-	r.foodMux.Lock()
-	defer r.foodMux.Unlock()
 	r.FoodTree.Remove(foodPointer, nil)
 }
 

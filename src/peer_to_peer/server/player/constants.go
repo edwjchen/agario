@@ -2,7 +2,7 @@ package player
 
 const SCREEN_WIDTH = 800
 const SCREEN_HEIGHT = 500
-const MIN_FOOD_NUM = 5
+const MIN_FOOD_NUM = 2
 
 const STARTING_MASS = 20
 const MAP_WIDTH = 10000
