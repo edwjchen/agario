@@ -1,0 +1,23 @@
+syntax = "proto3";
+package entryserver;
+
+service EntryServer {
+    rpc Join(JoinRequest) returns (JoinReply) {}
+    rpc CanStart(CanStartRequest) returns (CanStartReply) {}
+}
+
+message CanStartRequest {}
+
+message CanStartReply {
+    bool canStart = 1;
+}
+
+message JoinRequest {
+    string ip = 1;
+}
+
+message JoinReply {
+    string action = 1;
+    string ip = 2;
+    int32 mapLength = 3;
+}

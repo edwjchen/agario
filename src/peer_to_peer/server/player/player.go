@@ -7,7 +7,7 @@ import (
 	. "peer_to_peer/common"
 	. "peer_to_peer/server/region_pb"
 	. "peer_to_peer/server/player_pb"
-	// "log"
+	"log"
 )
 
 type PlayerHandler struct {
@@ -69,6 +69,7 @@ func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveR
 	}
 
 	regions := ph.Player.GetAOI() // returns list of region_id
+	log.Println("AOI", regions)
 	resChan := make(chan bool)
 	blob := ph.Player.GetBlob()
 	regionCall := func(regionId uint32, c chan bool) {
@@ -77,17 +78,21 @@ func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveR
 		// create client stub from clientconn
 		regionClient := NewRegionClient(conn)
 		clientUpdate := UpdateRegionRequest{Blob: blob, Id: regionId}
-		regionClient.ClientUpdate( context.Background(), &clientUpdate )
-
+		_, err := regionClient.ClientUpdate( context.Background(), &clientUpdate )
+		log.Println(err)
+		if err != nil {
+			log.Println("client updates big no no: ", err)
+		}
 		// call method on goroutine
 		c <- true
 	}
 
 	for _, regionId := range(regions) {
-		regionCall(regionId, resChan)
+		go regionCall(regionId, resChan)
 	}
 
 	for _ = range(regions) {
+		log.Println("I got a response!")
 		<-resChan
 	}
 
@@ -107,9 +112,61 @@ func (ph *PlayerHandler) Region(ctx context.Context, request *RegionRequest) (*R
 	// 	Foods: getRegionResponse.Foods,
 	// }
 
+	//Get Info from Regions
+	//Compile Info from Regions
+	visibleBlobs := make(map[*Blob]bool)
+	visibleFoods := make(map[*Food]bool)
+
+	
+	regions := ph.Player.GetAOI() // returns list of region_id
+	resChan := make(chan *GetRegionResponse)
+	regionCall := func(regionId uint32, c chan *GetRegionResponse) {
+		// use router to get the grpc clientconn, 
+		conn := ph.Router.Get(regionId)
+		// create client stub from clientconn
+		regionClient := NewRegionClient(conn)
+		getRegionRequest := IdRegionRequest{Id: regionId}
+		response, _ := regionClient.GetRegion(context.Background(), &getRegionRequest)
+
+		// call method on goroutine
+		c <- response
+	}
+
+	for _, regionId := range(regions) {
+		go regionCall(regionId, resChan)
+	}
+
+	for _ = range(regions) {
+		response := <-resChan
+		blobs := response.GetBlobs()
+		foods := response.GetFoods()
+
+		// TODO: Fix dedup
+		for _, b := range blobs {
+			visibleBlobs[b] = true
+		}
+
+		for _, f := range foods {
+			visibleFoods[f] = true
+		}
+	}
+
+	//compile list of blobs and foods
+	retBlobs := make([]*Blob, 0)
+	retFoods := make([]*Food, 0)
+
+	for b, _ := range visibleBlobs {
+		retBlobs = append(retBlobs, b)
+	}
+
+	for f, _ := range visibleFoods {
+		retFoods = append(retFoods, f)
+	}
+
+	//Respond]
 	response := RegionResponse{
-		Blobs: []*Blob{ph.Player.GetBlob()},
-		Foods: make([]*Food, 0),
+		Blobs: retBlobs,
+		Foods: retFoods,
 	}
 
 	return &response, nil

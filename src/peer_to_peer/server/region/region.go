@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"time"
 	"log"
+	"encoding/binary"
+	"hash/fnv"
 	"peer_to_peer/server/router"
 	. "peer_to_peer/server/player"
 	. "peer_to_peer/server/player_pb"
@@ -19,6 +21,36 @@ type RegionHandler struct{
 	Regions map[uint32]*RegionInfo
 	Router *router.Router
 	mux     sync.RWMutex
+}
+
+func (rh *RegionHandler) Init() {
+	// rh.Router.Heartbeat()
+	go rh.Router.Heartbeat()
+	time.Sleep(time.Second * 2)
+	rh.mux.Lock()
+
+	rh.Regions = make(map[uint32]*RegionInfo)
+
+	for i := 0; i < MAP_WIDTH/REGION_MAP_WIDTH; i++ {
+		for j := 0; j < MAP_HEIGHT/REGION_MAP_HEIGHT; j++ {
+			regionID := getRegionID(uint16(i), uint16(j))
+
+			hasher := fnv.New32a()
+			b := make([]byte, 4)
+			binary.LittleEndian.PutUint32(b, regionID)
+			hasher.Write(b)
+			h := uint32(hasher.Sum32())
+
+			if rh.Router.Successor(h) == rh.Router.Hash {
+				newRegion := &RegionInfo{}
+				newRegion.InitRegion(uint16(i), uint16(j))
+				go newRegion.RunSpawnFood()
+				rh.Regions[regionID] = newRegion
+			}
+		}
+	}	
+	rh.mux.Unlock()
+	
 }
 
 func (rh *RegionHandler) Ping(ctx context.Context, request *EmptyRequest) (*EmptyResponse, error) {
@@ -169,3 +201,8 @@ func (rh *RegionHandler) RemoveFoods(ctx context.Context, request *FoodRequest) 
 	response := EmptyResponse{}
 	return &response, nil
 }
+
+
+// func getRegionID(x, y uint16) uint32 {
+// 	return uint32(x) << 16 | uint32(y)
+// }

@@ -22,7 +22,7 @@ type Router struct {
 	iphash map[string]uint32
 	haship map[uint32]string
 	liveBacks []uint32 // stores hashes of ip
-	hash uint32
+	Hash uint32
 }
 
 type heartbeatOutput struct {
@@ -31,7 +31,7 @@ type heartbeatOutput struct {
 }
 
 // Need to store hash of self
-func (r *Router) Init(servers []string) {
+func (r *Router) Init(servers []string, ownAddr string) {
 	r.haship = make(map[uint32]string)
 	r.iphash = make(map[string]uint32)
 	r.conns = make(map[string] *grpc.ClientConn)
@@ -43,6 +43,9 @@ func (r *Router) Init(servers []string) {
 		r.iphash[ip] = hash 
 		r.haship[hash] = ip
 		r.conns[ip] = nil
+		if ip == ownAddr {
+			r.Hash = hash
+		}
 	}
 }
 
@@ -77,7 +80,7 @@ func (r *Router) Heartbeat() {
 			return 
 		}
 
-		log.Println("OK")
+		// log.Println("OK")
 		retChan <- heartbeatOutput {
 			ip:   ip,
 			conn: cxn,
@@ -118,7 +121,7 @@ func (r *Router) Get(key uint32) *grpc.ClientConn {
 	hasher.Write(b)
 	hash := uint32(hasher.Sum32())
 
-	primaryHash := r.successor(hash)
+	primaryHash := r.Successor(hash)
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	return r.conns[r.haship[primaryHash]]
@@ -153,13 +156,13 @@ func (r *Router) InvalidatePlayerConn(addr string) {
 // Returns GRPC connection
 func (r *Router) GetSuccessor() *grpc.ClientConn {
 	// get whatever is after us in aliveBacks
-	successorHash := r.successor(r.hash)
+	successorHash := r.Successor(r.Hash)
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	return r.conns[r.haship[successorHash]]
 }
 
-func (r *Router) successor(h uint32) uint32 {
+func (r *Router) Successor(h uint32) uint32 {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	if len(r.liveBacks) == 1 {

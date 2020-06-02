@@ -113,14 +113,18 @@ func (p *PlayerInfo) GetAOI() []uint32 {
 	bot_right_x := p.Blob.X + float64(SCREEN_WIDTH)/zoom_factor/2
 	bot_right_y := p.Blob.Y + float64(SCREEN_HEIGHT)/zoom_factor/2
 	//figure out which of the regions are in AOI
-	start_region_x := int(bot_right_x/REGION_MAP_WIDTH)
-	start_region_y := int(bot_right_y/REGION_MAP_HEIGHT)
-	end_region_x := int((bot_right_x - top_left_x)/REGION_MAP_WIDTH)
-	end_region_y := int((bot_right_y - top_left_y)/REGION_MAP_HEIGHT)
+	start_region_x := int(top_left_x/REGION_MAP_WIDTH)
+	start_region_y := int(top_left_y/REGION_MAP_HEIGHT)
+	end_region_x := int(bot_right_x/REGION_MAP_WIDTH)
+	end_region_y := int(bot_right_y/REGION_MAP_HEIGHT)
 
 	regionIds := make([]uint32, 0)
+	// log.Println("start & end x", start_region_x, end_region_x)
+	// log.Println("start & end y", start_region_y, end_region_y)
+
 	for x := start_region_x; x <= end_region_x; x++ {
 		for y := start_region_y; y <= end_region_y; y++ {
+			// log.Println("Region: ", int(x), int(y))
 			regionIds = append(regionIds, getRegionID(uint16(x),uint16(y)))
 		} 
 	}

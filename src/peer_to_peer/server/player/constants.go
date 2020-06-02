@@ -15,3 +15,6 @@ const EAT_RADIUS_DELTA = 5
 const ZOOM = 100
 
 const VER_FILE = "~/agarioVer"
+
+const PLAYER_PORT = "3000"
+const REGION_PORT = "3001"

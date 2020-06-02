@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 	"math"
-	"math/rand"
+	// "math/rand"
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/quadtree"
 	. "peer_to_peer/common"
@@ -28,11 +28,10 @@ type RegionInfo struct {
 	Quit     chan bool
 }
 
-func (r *RegionInfo) NewRegion(x uint16, y uint16, hash uint32) {
+func (r *RegionInfo) InitRegion(x, y uint16) {
 	r.foodMux.Lock()
 	r.PlayerInMux.Lock()
 	r.PlayerSeenMux.Lock()
-	r.FoodTree = quadtree.New(orb.Bound{Min: orb.Point{0, 0}, Max: orb.Point{player.MAP_WIDTH, player.MAP_HEIGHT}})
 	r.PlayersIn = make(map[string]*player.PlayerInfo)
 	r.PlayersSeen = make(map[string]*player.PlayerInfo)
 	r.x = x
@@ -41,22 +40,33 @@ func (r *RegionInfo) NewRegion(x uint16, y uint16, hash uint32) {
 	r.xmax = float64(x + 1) * 500.0 
 	r.ymin = float64(y) * 500.0
 	r.ymax = float64(y + 1) * 500.0
-	// TODO compute hash
-	r.hash = hash
-	go func() {
-		<-time.Tick(time.Second)
-		for {
-			select {
-			case <-r.Quit:
-				return
-			default:
-				r.spawnFood()
-			}
-		}
-	}()
+	r.FoodTree = quadtree.New(orb.Bound{Min: orb.Point{r.xmin, r.ymin}, Max: orb.Point{r.xmax, r.ymax}})
 	r.foodMux.Unlock()
 	r.PlayerInMux.Unlock()
 	r.PlayerSeenMux.Unlock()
+}
+
+// func (r *RegionInfo) InitPrimaryRegion(x uint16, y uint16) {
+
+// 	r.InitRegion(x, y)
+// 	// TODO compute hash
+// 	// r.hash = hash
+
+
+// }
+
+func (r *RegionInfo) RunSpawnFood() {
+	// go func() {
+	for {
+		<-time.Tick(time.Second)
+		select {
+		case <-r.Quit:
+			return
+		default:
+			r.spawnFood()
+		}
+	}
+	// }()
 }
 
 func (r *RegionInfo) GetFood() []*Food {
@@ -99,16 +109,16 @@ func (r *RegionInfo) spawnFood() {
 	r.foodMux.Lock()
 	defer r.foodMux.Unlock()
 
-	spawnRandNum := rand.Intn(player.MIN_FOOD_NUM)
+	// spawnRandNum := rand.Intn(player.MIN_FOOD_NUM)
 
-	for i := 0; i < spawnRandNum; i++ {
-		x := float64(rand.Intn(player.MAP_WIDTH))
-    	y := float64(rand.Intn(player.MAP_HEIGHT))
+	// for i := 0; i < spawnRandNum; i++ {
+	// 	x := float64(rand.Intn(player.REGION_MAP_WIDTH)) + r.xmin
+    // 	y := float64(rand.Intn(player.REGION_MAP_HEIGHT))+ r.ymin
 
-		foodPoint := orb.Point{x, y}
+	// 	foodPoint := orb.Point{x, y}
 
-		r.FoodTree.Add(foodPoint)
-	}
+	// 	r.FoodTree.Add(foodPoint)
+	// }
 }
 
 
