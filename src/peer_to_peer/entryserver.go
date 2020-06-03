@@ -13,7 +13,7 @@ import (
 const JOIN_ACTION = "JOIN"
 const CREATE_ACTION = "CREATE"
 
-const MIN_PLAYERS = 1
+const MIN_PLAYERS = 2
 const MAX_PLAYERS = 10000
 var MAP_LENGTH int32 = int32(math.Sqrt(MAX_PLAYERS))
 
@@ -24,7 +24,7 @@ func main() {
 	var server EntryServer
 	RegisterEntryServerServer(grpcServer, server)
 	
-	listen, err := net.Listen("tcp", "localhost:8080")
+	listen, err := net.Listen("tcp", "0.0.0.0:8080")
 	if err != nil {
 		log.Fatalf("could not listen to localhost:8080 %v", err)
 	}

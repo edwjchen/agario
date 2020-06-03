@@ -14,7 +14,7 @@ import (
 	"peer_to_peer/entryserver"
 )
 
-const ENTRYSERVERIP = "localhost:8080"
+const ENTRYSERVERIP = "192.168.86.24:8080"
 
 func main() {
 
@@ -46,7 +46,7 @@ func main() {
 		}
 	}
 	
-	router.Init([]string{"localhost:3001"}, regionAddr)
+	router.Init([]string{"192.168.86.24:3001"}, regionAddr)
 	regionHandler.Init()
 	
 	log.Println("PlayerHandler starting to process...")
