@@ -31,8 +31,8 @@ func (rh *RegionHandler) Init() {
 
 	rh.Regions = make(map[uint32]*RegionInfo)
 
-	for i := 0; i < MAP_WIDTH/REGION_MAP_WIDTH; i++ {
-		for j := 0; j < MAP_HEIGHT/REGION_MAP_HEIGHT; j++ {
+	for i := 0; i < 20; i++ {
+		for j := 0; j < 20; j++ {
 			regionID := getRegionID(uint16(i), uint16(j))
 
 			hasher := fnv.New32a()
@@ -61,7 +61,15 @@ func (rh *RegionHandler) Ping(ctx context.Context, request *EmptyRequest) (*Empt
 func (rh *RegionHandler) GetRegion(ctx context.Context, request *IdRegionRequest) (*GetRegionResponse, error) {
 	rh.mux.RLock()
 	regionId := request.GetId()
-	region, _ := rh.Regions[regionId]
+	region, err := rh.Regions[regionId]
+	log.Println("Error on get: ", err)
+	log.Println("GetRegion: regionID", regionId, " (x, y): ", GetRegionX(regionId),GetRegionY(regionId), " got: ", region)
+
+	// for id, info := range rh.Regions {
+	// 	log.Println("all regions: x, y:", GetRegionX(id), GetRegionY(id))
+	// 	log.Println("info: ", info)
+	// }
+
 	rh.mux.RUnlock()
 
 	allPlayers := make(map[string]*Blob)
@@ -179,9 +187,24 @@ func (rh *RegionHandler) ClientUpdate(ctx context.Context, request *UpdateRegion
 					rh.Router.InvalidatePlayerConn(eater.Ip)
 				}
 			}
+			return &UpdateRegionResponse{DeltaMass: 0, Alive: false}, nil
 		}
 	} else {
 		massIncrease = region.GetNumFoodsEaten(updatedBlob)
+	}
+
+	log.Println(updatedBlob.Ip)
+	log.Println(massIncrease)
+	if massIncrease != 0 {
+		playerServer := rh.Router.GetPlayerConn(updatedBlob.Ip)
+		client := NewPlayerClient(playerServer)
+		log.Println(client)
+		massIncReq := &MassIncrementRequest{MassIncrease: massIncrease}
+		_, err := client.MassIncrement(context.Background(), massIncReq)
+		if err != nil {
+			log.Println("Failed increment", err)
+			rh.Router.InvalidatePlayerConn(updatedBlob.Ip)
+		}
 	}
 
 	response := UpdateRegionResponse{
@@ -200,6 +223,19 @@ func (rh *RegionHandler) AddFoods(ctx context.Context, request *FoodRequest) (*E
 func (rh *RegionHandler) RemoveFoods(ctx context.Context, request *FoodRequest) (*EmptyResponse, error) {
 	response := EmptyResponse{}
 	return &response, nil
+}
+
+func GetRegionCood(rid uint32) (uint16, uint16) {
+	var x uint16 = uint16((rid & (0xffff0000)) >> 16)
+	var y uint16 = uint16((rid & (0x0000ffff)))
+	return x, y
+}
+
+func GetRegionX(rid uint32) (uint16) {
+	return uint16((rid & (0xffff0000)) >> 16)
+}
+func GetRegionY(rid uint32) (uint16) {
+	return uint16((rid & (0x0000ffff)))
 }
 
 

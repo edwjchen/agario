@@ -176,5 +176,6 @@ func (ph *PlayerHandler) MassIncrement(ctx context.Context, request *MassIncreme
 	deltaMass := request.GetMassIncrease()
 	ph.Player.IncrementMass(deltaMass)
 
-	return nil, nil
+	response := MassIncrementResponse{}
+	return &response, nil
 }

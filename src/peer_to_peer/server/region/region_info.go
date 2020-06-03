@@ -6,6 +6,7 @@ import (
 	"time"
 	"math"
 	"math/rand"
+	"log"
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/quadtree"
 	. "peer_to_peer/common"
@@ -29,6 +30,7 @@ type RegionInfo struct {
 }
 
 func (r *RegionInfo) InitRegion(x, y uint16) {
+	log.Println("initing region for x:", x, " y:", y)
 	r.foodMux.Lock()
 	r.PlayerInMux.Lock()
 	r.PlayerSeenMux.Lock()
@@ -45,15 +47,6 @@ func (r *RegionInfo) InitRegion(x, y uint16) {
 	r.PlayerInMux.Unlock()
 	r.PlayerSeenMux.Unlock()
 }
-
-// func (r *RegionInfo) InitPrimaryRegion(x uint16, y uint16) {
-
-// 	r.InitRegion(x, y)
-// 	// TODO compute hash
-// 	// r.hash = hash
-
-
-// }
 
 func (r *RegionInfo) RunSpawnFood() {
 	// go func() {

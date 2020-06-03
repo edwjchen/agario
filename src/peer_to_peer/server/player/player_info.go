@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"time"
 	. "peer_to_peer/common"
+	"math"
+	"math/rand"
 	// "log"
 )
 
@@ -99,8 +101,14 @@ func (p *PlayerInfo) UpdatePos(dx float64, dy float64) (float64, float64) {
 func (p *PlayerInfo) IncrementMass(deltaMass int32) {
 	p.mux.Lock()
 	defer p.mux.Unlock()
+	
+	//Poison food
+	prob := rand.Intn(POISON_PROB)
+	if prob == 0 {
+		deltaMass *= -1
+	}
 
-	p.Blob.Mass += deltaMass
+	p.Blob.Mass = max(p.Blob.Mass + deltaMass, STARTING_MASS)
 }
 
 // Returns a list of region ids
@@ -113,10 +121,11 @@ func (p *PlayerInfo) GetAOI() []uint32 {
 	bot_right_x := p.Blob.X + float64(SCREEN_WIDTH)/zoom_factor/2
 	bot_right_y := p.Blob.Y + float64(SCREEN_HEIGHT)/zoom_factor/2
 	//figure out which of the regions are in AOI
-	start_region_x := int(top_left_x/REGION_MAP_WIDTH)
-	start_region_y := int(top_left_y/REGION_MAP_HEIGHT)
-	end_region_x := int(bot_right_x/REGION_MAP_WIDTH)
-	end_region_y := int(bot_right_y/REGION_MAP_HEIGHT)
+	start_region_x := math.Max(0, top_left_x/REGION_MAP_WIDTH)
+	start_region_y := math.Max(0, top_left_y/REGION_MAP_HEIGHT)
+	end_region_x := math.Min(bot_right_x/REGION_MAP_WIDTH, 19)
+	end_region_y := math.Min(bot_right_y/REGION_MAP_HEIGHT, 19)
+
 
 	regionIds := make([]uint32, 0)
 	// log.Println("start & end x", start_region_x, end_region_x)
@@ -133,4 +142,18 @@ func (p *PlayerInfo) GetAOI() []uint32 {
 
 func getRegionID(x, y uint16) uint32 {
 	return uint32(x) << 16 | uint32(y)
+}
+
+func min(a, b int32) int32 {
+    if a < b {
+        return a
+    }
+    return b
+}
+
+func max(a, b int32) int32 {
+    if a > b {
+        return a
+    }
+    return b
 }
