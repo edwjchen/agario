@@ -33,14 +33,19 @@ func main() {
 	log.Println("RegionHandler starting...")
 	go regionGrpcServer.Serve(regionListener)
 
-	conn, _ := grpc.Dial(ENTRYSERVERIP, grpc.WithInsecure())
+	conn, err := grpc.Dial(ENTRYSERVERIP, grpc.WithInsecure())
+	log.Println(err)
 	client := entryserver.NewEntryServerClient(conn)
 	joinRequest := &entryserver.JoinRequest{Ip: myAddr}
-	client.Join(context.Background(), joinRequest)
+	res, errabc := client.Join(context.Background(), joinRequest)
+	log.Println(res, errabc)
 
 	canStartRequest := &entryserver.CanStartRequest{}
 	for {
-		res, _ := client.CanStart(context.Background(), canStartRequest)
+		res, _:= client.CanStart(context.Background(), canStartRequest)
+		// log.Println(err)
+		// log.Println(res)
+		// log.Println(res.GetCanStart())
 		if res.GetCanStart() {
 			break
 		}

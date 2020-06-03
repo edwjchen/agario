@@ -24,7 +24,7 @@ func main() {
 	var server EntryServer
 	RegisterEntryServerServer(grpcServer, server)
 	
-	listen, err := net.Listen("tcp", "0.0.0.0:8080")
+	listen, err := net.Listen("tcp", "192.168.86.24:8080")
 	if err != nil {
 		log.Fatalf("could not listen to localhost:8080 %v", err)
 	}

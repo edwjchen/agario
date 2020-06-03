@@ -6,6 +6,10 @@ import player_pb2_grpc
 import pygame,random,math
 import asyncio
 import time
+import sys
+
+IP = sys.argv[1]+":3000"
+print("Coneccting on ip:", IP)
 
 pygame.init()
 PLAYER_COLORS = [(37,7,255),(35,183,253),(48,254,241),(19,79,251),(255,7,230),(255,7,23),(6,254,13)]
@@ -34,7 +38,7 @@ clock = pygame.time.Clock()
 
 #grpc constants
 #TODO Change stuff here
-channel = grpc.insecure_channel('localhost:3000')
+channel = grpc.insecure_channel(IP)
 # print('channeled')
 stub = player_pb2_grpc.PlayerStub(channel)
 # print('stubbed')
@@ -203,7 +207,7 @@ while(True):
     if not blob.alive:
         channel.close()
         time.sleep(10)
-        channel = grpc.insecure_channel('localhost:3000')
+        channel = grpc.insecure_channel(IP)
         stub = player_pb2_grpc.PlayerStub(channel)
         blob = Blob(surface,"Viliami")
         continue
