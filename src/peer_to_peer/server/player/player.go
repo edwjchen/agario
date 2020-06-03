@@ -1,13 +1,14 @@
 package player
 
 import (
-	"golang.org/x/net/context"
-	"math"
-	"peer_to_peer/server/router"
-	. "peer_to_peer/common"
-	. "peer_to_peer/server/region_pb"
-	. "peer_to_peer/server/player_pb"
 	"log"
+	"math"
+	. "peer_to_peer/common"
+	. "peer_to_peer/server/player_pb"
+	. "peer_to_peer/server/region_pb"
+	"peer_to_peer/server/router"
+
+	"golang.org/x/net/context"
 )
 
 type PlayerHandler struct {
@@ -24,7 +25,7 @@ func (ph *PlayerHandler) Init(ctx context.Context, request *InitRequest) (*InitR
 		Y:    startY,
 		Mass: mass,
 	}
-	
+
 	return &response, nil
 }
 
@@ -53,7 +54,7 @@ func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveR
 	vx := SPEED * (90 - math.Abs(rotation)) / 90
 	var vy float64
 	if rotation < 0 {
-		vy = -1*SPEED+ math.Abs(vx)
+		vy = -1*SPEED + math.Abs(vx)
 	} else {
 		vy = SPEED - math.Abs(vx)
 	}
@@ -65,7 +66,7 @@ func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveR
 		X:     x,
 		Y:     y,
 		Alive: true,
-		Mass:  ph.Player.GetMass(),//TODO: change but leave for now
+		Mass:  ph.Player.GetMass(), //TODO: change but leave for now
 	}
 
 	regions := ph.Player.GetAOI() // returns list of region_id
@@ -73,12 +74,12 @@ func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveR
 	resChan := make(chan bool)
 	blob := ph.Player.GetBlob()
 	regionCall := func(regionId uint32, c chan bool) {
-		// use router to get the grpc clientconn, 
+		// use router to get the grpc clientconn,
 		conn := ph.Router.Get(regionId)
 		// create client stub from clientconn
 		regionClient := NewRegionClient(conn)
 		clientUpdate := UpdateRegionRequest{Blob: blob, Id: regionId}
-		_, err := regionClient.ClientUpdate( context.Background(), &clientUpdate )
+		_, err := regionClient.ClientUpdate(context.Background(), &clientUpdate)
 		log.Println(err)
 		if err != nil {
 			log.Println("client updates big no no: ", err)
@@ -87,11 +88,11 @@ func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveR
 		c <- true
 	}
 
-	for _, regionId := range(regions) {
+	for _, regionId := range regions {
 		go regionCall(regionId, resChan)
 	}
 
-	for _ = range(regions) {
+	for _ = range regions {
 		log.Println("I got a response!")
 		<-resChan
 	}
@@ -117,11 +118,10 @@ func (ph *PlayerHandler) Region(ctx context.Context, request *RegionRequest) (*R
 	visibleBlobs := make(map[*Blob]bool)
 	visibleFoods := make(map[*Food]bool)
 
-	
 	regions := ph.Player.GetAOI() // returns list of region_id
 	resChan := make(chan *GetRegionResponse)
 	regionCall := func(regionId uint32, c chan *GetRegionResponse) {
-		// use router to get the grpc clientconn, 
+		// use router to get the grpc clientconn,
 		conn := ph.Router.Get(regionId)
 		// create client stub from clientconn
 		regionClient := NewRegionClient(conn)
@@ -132,11 +132,11 @@ func (ph *PlayerHandler) Region(ctx context.Context, request *RegionRequest) (*R
 		c <- response
 	}
 
-	for _, regionId := range(regions) {
+	for _, regionId := range regions {
 		go regionCall(regionId, resChan)
 	}
 
-	for _ = range(regions) {
+	for _ = range regions {
 		response := <-resChan
 		blobs := response.GetBlobs()
 		foods := response.GetFoods()
