@@ -46,7 +46,7 @@ func main() {
 		}
 	}
 	
-	router.Init([]string{"192.168.86.24:3001"}, regionAddr)
+	router.Init([]string{"192.168.86.24:3001", "192.168.86.25:3001"}, regionAddr)
 	regionHandler.Init()
 	
 	log.Println("PlayerHandler starting to process...")
