@@ -31,8 +31,9 @@ func (rh *RegionHandler) Init() {
 
 	rh.Regions = make(map[uint32]*RegionInfo)
 
-	for i := 0; i < 20; i++ {
-		for j := 0; j < 20; j++ {
+	var i, j uint32
+	for i = 0; i < Conf.NREGION_WIDTH; i++ {
+		for j = 0; j < Conf.NREGION_HEIGHT; j++ {
 			regionID := getRegionID(uint16(i), uint16(j))
 
 			hasher := fnv.New32a()
@@ -43,8 +44,8 @@ func (rh *RegionHandler) Init() {
 
 			if rh.Router.Successor(h) == rh.Router.Hash {
 				newRegion := &RegionInfo{}
-				newRegion.InitRegion(uint16(i), uint16(j))
-				go newRegion.RunSpawnFood()
+				newRegion.InitRegion(i, j)
+				// go newRegion.RunSpawnFood()
 				rh.Regions[regionID] = newRegion
 			}
 		}

@@ -29,19 +29,19 @@ type RegionInfo struct {
 	Quit     chan bool
 }
 
-func (r *RegionInfo) InitRegion(x, y uint16) {
+func (r *RegionInfo) InitRegion(x, y uint32) {
 	log.Println("initing region for x:", x, " y:", y)
 	r.foodMux.Lock()
 	r.PlayerInMux.Lock()
 	r.PlayerSeenMux.Lock()
 	r.PlayersIn = make(map[string]*player.PlayerInfo)
 	r.PlayersSeen = make(map[string]*player.PlayerInfo)
-	r.x = x
-	r.y = y
-	r.xmin = float64(x) * 500.0
-	r.xmax = float64(x + 1) * 500.0 
-	r.ymin = float64(y) * 500.0
-	r.ymax = float64(y + 1) * 500.0
+	r.x = uint16(x)
+	r.y = uint16(y)
+	r.xmin = float64(x * Conf.REGION_MAP_WIDTH)
+	r.xmax = float64((x + 1) * Conf.REGION_MAP_WIDTH)
+	r.ymin = float64(y * Conf.REGION_MAP_HEIGHT)
+	r.ymax = float64((y + 1) * Conf.REGION_MAP_HEIGHT)
 	r.FoodTree = quadtree.New(orb.Bound{Min: orb.Point{r.xmin, r.ymin}, Max: orb.Point{r.xmax, r.ymax}})
 	r.foodMux.Unlock()
 	r.PlayerInMux.Unlock()
@@ -65,7 +65,7 @@ func (r *RegionInfo) RunSpawnFood() {
 func (r *RegionInfo) GetFood() []*Food {
 	r.foodMux.Lock()
 	defer r.foodMux.Unlock()
-	bound := orb.Bound{Min: orb.Point{0, 0}, Max: orb.Point{player.MAP_WIDTH, player.MAP_HEIGHT}}
+	bound := orb.Bound{Min: orb.Point{r.xmin, r.ymin}, Max: orb.Point{r.xmax, r.ymax}}
 	foods := r.FoodTree.InBound([]orb.Pointer{}, bound)
 
 	foodSlice := make([]*Food, len(foods))
@@ -107,8 +107,8 @@ func (r *RegionInfo) spawnFood() {
 	spawnRandNum := rand.Intn(2)
 
 	for i := 0; i < spawnRandNum; i++ {
-		x := float64(rand.Intn(player.REGION_MAP_WIDTH)) + r.xmin
-    	y := float64(rand.Intn(player.REGION_MAP_HEIGHT))+ r.ymin
+		x := float64(rand.Intn(int(Conf.REGION_MAP_WIDTH))) + r.xmin
+		y := float64(rand.Intn(int(Conf.REGION_MAP_HEIGHT))) + r.ymin
 
 		foodPoint := orb.Point{x, y}
 
@@ -169,7 +169,7 @@ func (r *RegionInfo) WasEaten(blob *Blob) (bool, *Blob) {
 
 		centerDistance := blobDistance(blob.X, blob.Y, currBlob.X, currBlob.Y)
 
-		if blobRadius > (centerDistance + currBlobRadius + player.EAT_RADIUS_DELTA) {
+		if blobRadius > (centerDistance + currBlobRadius + Conf.EAT_RADIUS_DELTA) {
 			return false, currBlob
 		}
 	}

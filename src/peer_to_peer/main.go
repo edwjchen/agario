@@ -6,6 +6,7 @@ import (
 	"net"
 	"log"
 	"os"
+	"peer_to_peer/common"
 	"peer_to_peer/server/router"
 	"peer_to_peer/server/region"
 	"peer_to_peer/server/player"
@@ -14,15 +15,19 @@ import (
 	"peer_to_peer/entryserver"
 )
 
-const ENTRYSERVERIP = "192.168.86.24:8080"
+// const ENTRYSERVERIP = "99.76.231.26:8080"
 
 func main() {
 
 	myAddr := os.Args[1]
-	regionAddr := myAddr+":"+player.REGION_PORT
-	playerAddr := myAddr+":"+player.PLAYER_PORT
-	
-    router := &router.Router{}
+	e := common.ReadConfig(os.Getenv("GOPATH")+"/src/peer_to_peer/common/config.json")
+	if e != nil {
+		log.Fatalf("Cannot load config file", e)
+	}
+	regionAddr := myAddr + ":" + common.Conf.REGION_PORT
+	playerAddr := myAddr + ":" + common.Conf.PLAYER_PORT
+
+	router := &router.Router{}
 	regionGrpcServer := grpc.NewServer()
 	var regionHandler region.RegionHandler = region.RegionHandler{Router: router}
 	region_pb.RegisterRegionServer(regionGrpcServer, &regionHandler)
@@ -33,7 +38,7 @@ func main() {
 	log.Println("RegionHandler starting...")
 	go regionGrpcServer.Serve(regionListener)
 
-	conn, err := grpc.Dial(ENTRYSERVERIP, grpc.WithInsecure())
+	conn, err := grpc.Dial(common.Conf.ENTRY_SERVER, grpc.WithInsecure())
 	log.Println(err)
 	client := entryserver.NewEntryServerClient(conn)
 	joinRequest := &entryserver.JoinRequest{Ip: myAddr}
@@ -51,7 +56,7 @@ func main() {
 		}
 	}
 	
-	router.Init([]string{"192.168.86.24:3001", "192.168.86.25:3001"}, regionAddr)
+	router.Init(common.Conf.REGION_SERVERS, regionAddr)
 	regionHandler.Init()
 	
 	log.Println("PlayerHandler starting to process...")

@@ -80,6 +80,7 @@ class Blob:
         self.surface = surface
         self.color = PLAYER_COLORS[random.randint(0,len(PLAYER_COLORS)-1)]
         self.name = initResponse.id
+        self.alive = True
         self.pieces = list()
         piece = Piece(surface,(self.x,self.y),self.color,self.mass,self.name)
 

@@ -50,13 +50,13 @@ func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveR
 	// log.Println("dw & dy", dx, dy)
 
 	// log.Println("get: ", dx, dy)
-	rotation := math.Atan2(dy-SCREEN_HEIGHT/2, dx-SCREEN_WIDTH/2) * 180 / math.Pi
-	vx := SPEED * (90 - math.Abs(rotation)) / 90
+	rotation := math.Atan2(dy-float64(Conf.SCREEN_HEIGHT/2), dx-float64(Conf.SCREEN_WIDTH/2)) * 180 / math.Pi
+	vx := Conf.SPEED * (90 - math.Abs(rotation)) / 90
 	var vy float64
 	if rotation < 0 {
-		vy = -1*SPEED + math.Abs(vx)
+		vy = -1*Conf.SPEED + math.Abs(vx)
 	} else {
-		vy = SPEED - math.Abs(vx)
+		vy = Conf.SPEED - math.Abs(vx)
 	}
 	// log.Println("vx & vy", vx, vy)
 

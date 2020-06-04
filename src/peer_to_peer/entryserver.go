@@ -4,29 +4,40 @@ import (
 	"google.golang.org/grpc"
 	"net"
 	"log"
+	"os"
 	"golang.org/x/net/context"
 	"peer_to_peer/info"
+	"peer_to_peer/common"
 	. "peer_to_peer/entryserver"
-	"math"
+	// "math"
 )
 
 const JOIN_ACTION = "JOIN"
 const CREATE_ACTION = "CREATE"
 
-const MIN_PLAYERS = 2
-const MAX_PLAYERS = 10000
-var MAP_LENGTH int32 = int32(math.Sqrt(MAX_PLAYERS))
-
-var entryInfo info.EntryInfo = info.EntryInfo{MinPlayers: MIN_PLAYERS, MaxPlayers: MAX_PLAYERS, CurrNodes: make([]string, 0)}
+var esConfig common.EntryServerConfig
+var entryInfo info.EntryInfo 
 
 func main() {
 	grpcServer := grpc.NewServer()
 	var server EntryServer
 	RegisterEntryServerServer(grpcServer, server)
-	
-	listen, err := net.Listen("tcp", "192.168.86.24:8080")
+
+	conf, err := common.ReadEntryServerConfig(os.Getenv("GOPATH")+"/src/peer_to_peer/common/esconfig.json")
 	if err != nil {
-		log.Fatalf("could not listen to localhost:8080 %v", err)
+		log.Fatalf("Can't read Entry server config", err);
+	}
+	esConfig = conf 
+	// esConfig.MAP_LENGTH = int32(math.Sqrt(conf.MAX_PLAYERS))
+	entryInfo = info.EntryInfo{
+		MinPlayers: int(esConfig.MIN_PLAYERS), 
+		MaxPlayers: int(esConfig.MAX_PLAYERS), 
+		CurrNodes: make([]string, 0),
+	}
+	
+	listen, err := net.Listen("tcp", esConfig.ADDR)
+	if err != nil {
+		log.Fatalf("could not listen to ", esConfig.ADDR, err)
 	}
   	log.Println("Server starting...")
   	log.Fatal(grpcServer.Serve(listen))
@@ -67,7 +78,7 @@ func (EntryServer) Join(ctx context.Context, request *JoinRequest) (*JoinReply, 
 	response := &JoinReply{
 		Action: action,
 		Ip: ip,
-		MapLength: MAP_LENGTH,
+		MapLength: 0,
 	}
 	return response, nil
 } 
