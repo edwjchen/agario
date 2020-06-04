@@ -8,7 +8,9 @@ import asyncio
 import time
 import sys
 
-IP = sys.argv[1]+":3000"
+IP = sys.argv[1]
+# BOT = bool(sys.argv[2])
+BOT = True
 print("Coneccting on ip:", IP)
 
 pygame.init()
@@ -22,6 +24,8 @@ surface = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 FOOD_MASS = 7
 ZOOM_CONSTANT = 100
 MAP_LENGTH = 10000
+EAT_CONSTANT = 5
+MASS_MULTIPLIER = 3
 
 t_surface = pygame.Surface((95,25),pygame.SRCALPHA) #transparent rect for score
 t_lb_surface = pygame.Surface((155,278),pygame.SRCALPHA) #transparent rect for leaderboard
@@ -56,6 +60,9 @@ def getDistance(pos1,pos2):
 
     return ((diffX**2)+(diffY**2))**(0.5)
 
+def get_diameter(mass):
+    return (mass ** 0.5) * MASS_MULTIPLIER * 2
+
 class Camera:
     def __init__(self):
         self.x = 0
@@ -84,11 +91,92 @@ class Blob:
         self.pieces = list()
         piece = Piece(surface,(self.x,self.y),self.color,self.mass,self.name)
 
+        self.foods = None
+        self.players = None
+
+        self.next_x = random.randint(0, SCREEN_WIDTH)
+        self.next_y = random.randint(0, SCREEN_HEIGHT)
+        self.move_count = 0
+
+
+
     def update(self):
+        if BOT:
+            closest_food = self.findClosest(self.foods, False)
+            closest_player = self.findClosest(self.players, True)
+
+            if not closest_food and not closest_player:
+                #move randomly
+                self.randomWalk()
+            elif closest_player:
+                #move towards or away from player
+                val = self.canEatPlayer(closest_player)
+                if val == 1:
+                    #move towards
+                    self.next_x = closest_player.x - self.x
+                    self.next_y = closest_player.y - self.y
+
+                elif val == 0:
+                    #move towards food
+                    self.next_x = closest_food.x - self.x
+                    self.next_y = closest_food.y - self.y
+                
+                else:
+                    #move away
+                    self.next_x = self.x - closest_player.x 
+                    self.next_y = self.y - closest_player.y
+
+            else:
+                #move towards food
+                self.next_x = closest_food.x - self.x
+                self.next_y = closest_food.y - self.y
+
+            self.next_x += SCREEN_WIDTH/2
+            self.next_y += SCREEN_HEIGHT/2
         self.move()
 
+    def findClosest(self, obj_list, is_player_list):
+        if not obj_list:
+            return None
+        else:
+            min_distance = float('inf')
+            my_pos = (self.x, self.y)
+            ret = None
+            for obj in obj_list:
+                obj_pos = (obj.x, obj.y)
+                dist = getDistance(my_pos, obj_pos)
+                if dist < min_distance:
+                    if is_player_list and obj.name != self.name and dist < 2000:
+                        min_distance = dist
+                        ret = obj
+                    elif not is_player_list:
+                        min_distance = dist
+                        ret = obj
+            return ret
+
+    def randomWalk(self):
+        if self.move_count < 1000:
+            self.next_x = random.randint(0, SCREEN_WIDTH)
+            self.next_y = random.randint(0, SCREEN_HEIGHT)
+
+    def canEatPlayer(self, enemy):
+        if self.mass > enemy.mass + EAT_CONSTANT + 100:
+            return 1
+        elif self.mass >= enemy.mass:
+            return 0
+        else:
+            return -1
+        
+
     def move(self):
-        dX,dY = pygame.mouse.get_pos()
+        self.move_count += 1
+        if self.move_count >= 1000:
+            self.move_count = 0 
+
+        if BOT:
+            dX, dY = self.next_x, self.next_y
+        else:
+            dX,dY = pygame.mouse.get_pos()
         moveRequest = player_pb2.MoveRequest()
         moveRequest.id = self.name
         moveRequest.x = dX
@@ -105,7 +193,8 @@ class Blob:
         regionResponse = stub.Region(regionRequest)
 
         players = regionResponse.blobs
-        # print(players)
+        self.players = players
+        print(players)
         for player in players:
             if player.name == self.name:
                 #update player mass
@@ -117,13 +206,16 @@ class Blob:
             zoom = cam.zoom
             x = cam.x
             y = cam.y
-            pygame.draw.circle(self.surface,(col[0]-int(col[0]/3),int(col[1]-col[1]/3),int(col[2]-col[2]/3)),(int(player.x*zoom+x),int(player.y*zoom+y)),int((player.mass/2+3)*zoom))
-            pygame.draw.circle(self.surface,col,(int(player.x*cam.zoom+cam.x),int(player.y*cam.zoom+cam.y)),int(player.mass/2*zoom))
+            d = get_diameter(player.mass)
+            print(d)
+            pygame.draw.circle(self.surface,(col[0]-int(col[0]/3),int(col[1]-col[1]/3),int(col[2]-col[2]/3)),(int(player.x*zoom+x),int(player.y*zoom+y)),int((d/2+3)*zoom))
+            pygame.draw.circle(self.surface,col,(int(player.x*cam.zoom+cam.x),int(player.y*cam.zoom+cam.y)),int(d/2*zoom))
             if(len(player.name) > 0):
                 fw, fh = font.size(player.name)
                 drawText(player.name, (player.x*cam.zoom+cam.x-int(fw/2),player.y*cam.zoom+cam.y-int(fh/2)),(50,50,50))
 
         foods = regionResponse.foods
+        self.foods = foods
         for food in foods:
             #only draw food if food is on screen
 
@@ -194,8 +286,8 @@ while(True):
             pygame.quit()
             quit()
     blob.update()
-    camera.zoom = ZOOM_CONSTANT/(blob.mass)+0.3
-    print("zoom:", camera.zoom)
+    d = get_diameter(blob.mass)
+    camera.zoom = ZOOM_CONSTANT/d+0.3
 
     camera.center(blob)
     # print(blob.x, blob.y)

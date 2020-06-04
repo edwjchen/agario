@@ -1,25 +1,25 @@
-package region 
+package region
 
 import (
 	"golang.org/x/net/context"
 	// "github.com/paulmach/orb/quadtree"
-	"sync"
-	"strings"
-	"fmt"
-	"time"
-	"log"
 	"encoding/binary"
+	"fmt"
 	"hash/fnv"
-	"peer_to_peer/server/router"
+	"log"
+	. "peer_to_peer/common"
 	. "peer_to_peer/server/player"
 	. "peer_to_peer/server/player_pb"
 	. "peer_to_peer/server/region_pb"
-	. "peer_to_peer/common"
+	"peer_to_peer/server/router"
+	"strings"
+	"sync"
+	"time"
 )
 
-type RegionHandler struct{
+type RegionHandler struct {
 	Regions map[uint32]*RegionInfo
-	Router *router.Router
+	Router  *router.Router
 	mux     sync.RWMutex
 }
 
@@ -45,13 +45,13 @@ func (rh *RegionHandler) Init() {
 			if rh.Router.Successor(h) == rh.Router.Hash {
 				newRegion := &RegionInfo{}
 				newRegion.InitRegion(i, j)
-				// go newRegion.RunSpawnFood()
+				go newRegion.MaintainRegion()
 				rh.Regions[regionID] = newRegion
 			}
 		}
-	}	
+	}
 	rh.mux.Unlock()
-	
+
 }
 
 func (rh *RegionHandler) Ping(ctx context.Context, request *EmptyRequest) (*EmptyResponse, error) {
@@ -62,9 +62,9 @@ func (rh *RegionHandler) Ping(ctx context.Context, request *EmptyRequest) (*Empt
 func (rh *RegionHandler) GetRegion(ctx context.Context, request *IdRegionRequest) (*GetRegionResponse, error) {
 	rh.mux.RLock()
 	regionId := request.GetId()
-	region, err := rh.Regions[regionId]
-	log.Println("Error on get: ", err)
-	log.Println("GetRegion: regionID", regionId, " (x, y): ", GetRegionX(regionId),GetRegionY(regionId), " got: ", region)
+	region, _ := rh.Regions[regionId]
+	// log.Println("Error on get: ", err)
+	// log.Println("GetRegion: regionID", regionId, " (x, y): ", GetRegionX(regionId), GetRegionY(regionId), " got: ", region)
 
 	// for id, info := range rh.Regions {
 	// 	log.Println("all regions: x, y:", GetRegionX(id), GetRegionY(id))
@@ -86,8 +86,8 @@ func (rh *RegionHandler) GetRegion(ctx context.Context, request *IdRegionRequest
 	}
 
 	response := GetRegionResponse{
-		Blobs:     blobs,
-		Foods:     region.GetFood(),
+		Blobs: blobs,
+		Foods: region.GetFood(),
 	}
 	return &response, nil
 }
@@ -99,8 +99,8 @@ func (rh *RegionHandler) AddRegion(ctx context.Context, request *AddRegionReques
 
 func (rh *RegionHandler) RemoveRegion(ctx context.Context, request *IdRegionRequest) (*EmptyResponse, error) {
 	//send quit channel
-	//close quit channel 
-	
+	//close quit channel
+
 	response := EmptyResponse{}
 	return &response, nil
 }
@@ -116,10 +116,10 @@ func (rh *RegionHandler) ClientUpdate(ctx context.Context, request *UpdateRegion
 	rh.mux.RLock()
 	region, _ := rh.Regions[regionId]
 	rh.mux.RUnlock()
-	
+
 	updatedBlob := request.GetBlob()
 	updatedPlayerInfo := &PlayerInfo{
-		Blob: *updatedBlob,
+		Blob:       *updatedBlob,
 		LastUpdate: time.Now(),
 	}
 	updatedBlobID := BlobID(updatedBlob)
@@ -130,11 +130,11 @@ func (rh *RegionHandler) ClientUpdate(ctx context.Context, request *UpdateRegion
 	// if player is dead and we receive update saying player is alive, tell sender that player is dead.
 
 	/*
-	t=0: player sends update1 to server
-	t=1: server received update1 and calculates that player is dead. eagerly evict player from cache
-	t=2: player sends update2 to server (alive)
-	t=3: server sends response1 to tell player that he's dead
-	t=4: server receives update2 (alive). put player into cache
+		t=0: player sends update1 to server
+		t=1: server received update1 and calculates that player is dead. eagerly evict player from cache
+		t=2: player sends update2 to server (alive)
+		t=3: server sends response1 to tell player that he's dead
+		t=4: server receives update2 (alive). put player into cache
 	*/
 
 	// 	If player within region:
@@ -145,7 +145,7 @@ func (rh *RegionHandler) ClientUpdate(ctx context.Context, request *UpdateRegion
 	// 		Else
 	// 			Remove from cache and do nothing
 	// 			eaterServer = routingService.Get(eater)   // eater server is the player server
-	// 			eaterServer.MassIncrement(massIncrease)  
+	// 			eaterServer.MassIncrement(massIncrease)
 	// 	Else:
 	// 		massIncrease = getMasncreaseFromFood(player)
 	// 		UpdatePos in local region hint cache
@@ -157,12 +157,12 @@ func (rh *RegionHandler) ClientUpdate(ctx context.Context, request *UpdateRegion
 
 	region.PlayersIn[updatedBlobID] = updatedPlayerInfo
 	region.PlayersSeen[updatedBlobID] = updatedPlayerInfo
-	
+
 	if !updatedBlob.Alive {
 		// Remove blob from cache
-		response := UpdateRegionResponse {
+		response := UpdateRegionResponse{
 			DeltaMass: 0,
-			Alive: false,
+			Alive:     false,
 		}
 		return &response, nil
 	}
@@ -177,7 +177,7 @@ func (rh *RegionHandler) ClientUpdate(ctx context.Context, request *UpdateRegion
 			updatedBlob.Alive = false
 			region.PlayersIn[updatedBlobID].Blob.Alive = false
 			region.PlayersSeen[updatedBlobID].Blob.Alive = false
-			
+
 			eaterServer := rh.Router.GetPlayerConn(eater.Ip)
 			if eaterServer != nil {
 				client := NewPlayerClient(eaterServer)
@@ -194,12 +194,12 @@ func (rh *RegionHandler) ClientUpdate(ctx context.Context, request *UpdateRegion
 		massIncrease = region.GetNumFoodsEaten(updatedBlob)
 	}
 
-	log.Println(updatedBlob.Ip)
-	log.Println(massIncrease)
+	// log.Println(updatedBlob.Ip)
+	// log.Println(massIncrease)
 	if massIncrease != 0 {
 		playerServer := rh.Router.GetPlayerConn(updatedBlob.Ip)
 		client := NewPlayerClient(playerServer)
-		log.Println(client)
+		// log.Println(client)
 		massIncReq := &MassIncrementRequest{MassIncrease: massIncrease}
 		_, err := client.MassIncrement(context.Background(), massIncReq)
 		if err != nil {
@@ -210,7 +210,7 @@ func (rh *RegionHandler) ClientUpdate(ctx context.Context, request *UpdateRegion
 
 	response := UpdateRegionResponse{
 		DeltaMass: massIncrease,
-		Alive: updatedBlob.Alive,
+		Alive:     updatedBlob.Alive,
 	}
 	return &response, nil
 }
@@ -232,13 +232,12 @@ func GetRegionCood(rid uint32) (uint16, uint16) {
 	return x, y
 }
 
-func GetRegionX(rid uint32) (uint16) {
+func GetRegionX(rid uint32) uint16 {
 	return uint16((rid & (0xffff0000)) >> 16)
 }
-func GetRegionY(rid uint32) (uint16) {
+func GetRegionY(rid uint32) uint16 {
 	return uint16((rid & (0x0000ffff)))
 }
-
 
 // func getRegionID(x, y uint16) uint32 {
 // 	return uint32(x) << 16 | uint32(y)

@@ -151,7 +151,7 @@ func (r *Router) GetPlayerConn(addr string) *grpc.ClientConn {
 func (r *Router) InvalidatePlayerConn(addr string) {
 	r.playerLock.Lock()
 	defer r.playerLock.Unlock()
-	r.playerConns[addr] = nil
+	delete(r.playerConns, addr)
 }
 // Returns GRPC connection
 func (r *Router) GetSuccessor() *grpc.ClientConn {

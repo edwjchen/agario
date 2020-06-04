@@ -1,26 +1,31 @@
 package main
 
 import (
-	"google.golang.org/grpc"
-	"golang.org/x/net/context"
-	"net"
 	"log"
+	"net"
 	"os"
 	"peer_to_peer/common"
-	"peer_to_peer/server/router"
-	"peer_to_peer/server/region"
+	"peer_to_peer/entryserver"
 	"peer_to_peer/server/player"
 	"peer_to_peer/server/player_pb"
+	"peer_to_peer/server/region"
 	"peer_to_peer/server/region_pb"
-	"peer_to_peer/entryserver"
-)
+	"peer_to_peer/server/router"
 
-// const ENTRYSERVERIP = "99.76.231.26:8080"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
+)
 
 func main() {
 
 	myAddr := os.Args[1]
-	e := common.ReadConfig(os.Getenv("GOPATH")+"/src/peer_to_peer/common/config.json")
+	basePath := "/src/peer_to_peer/common/"
+	configPath := "/src/peer_to_peer/common/config.json"
+	if len(os.Args) == 3 {
+		configPath = basePath + os.Args[2]
+	}
+
+	e := common.ReadConfig(os.Getenv("GOPATH") + configPath)
 	if e != nil {
 		log.Fatalf("Cannot load config file", e)
 	}
@@ -47,7 +52,7 @@ func main() {
 
 	canStartRequest := &entryserver.CanStartRequest{}
 	for {
-		res, _:= client.CanStart(context.Background(), canStartRequest)
+		res, _ := client.CanStart(context.Background(), canStartRequest)
 		// log.Println(err)
 		// log.Println(res)
 		// log.Println(res.GetCanStart())
@@ -55,16 +60,16 @@ func main() {
 			break
 		}
 	}
-	
+
 	router.Init(common.Conf.REGION_SERVERS, regionAddr)
 	regionHandler.Init()
-	
+
 	log.Println("PlayerHandler starting to process...")
 	var playerHandler player.PlayerHandler = player.PlayerHandler{Router: router}
 	playerHandler.Player.InitIP(playerAddr)
 	// player.PlayerInfoStruct.InitIP(playerAddr)
 	playerGrpcServer := grpc.NewServer()
-	
+
 	player_pb.RegisterPlayerServer(playerGrpcServer, &playerHandler)
 	playerListener, err := net.Listen("tcp", playerAddr)
 	if err != nil {
@@ -73,6 +78,5 @@ func main() {
 	log.Println("PlayerHandler starting...")
 	// go playerGrpcServer.Serve(playerListener)
 	log.Fatal(playerGrpcServer.Serve(playerListener))
-
 
 }

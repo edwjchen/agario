@@ -1,12 +1,14 @@
 package player
 
 import (
+	"fmt"
 	"log"
 	"math"
 	. "peer_to_peer/common"
 	. "peer_to_peer/server/player_pb"
 	. "peer_to_peer/server/region_pb"
 	"peer_to_peer/server/router"
+	"strings"
 
 	"golang.org/x/net/context"
 )
@@ -70,7 +72,7 @@ func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveR
 	}
 
 	regions := ph.Player.GetAOI() // returns list of region_id
-	log.Println("AOI", regions)
+	// log.Println("AOI", regions)
 	resChan := make(chan bool)
 	blob := ph.Player.GetBlob()
 	regionCall := func(regionId uint32, c chan bool) {
@@ -80,7 +82,7 @@ func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveR
 		regionClient := NewRegionClient(conn)
 		clientUpdate := UpdateRegionRequest{Blob: blob, Id: regionId}
 		_, err := regionClient.ClientUpdate(context.Background(), &clientUpdate)
-		log.Println(err)
+		// log.Println(err)
 		if err != nil {
 			log.Println("client updates big no no: ", err)
 		}
@@ -93,7 +95,7 @@ func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveR
 	}
 
 	for _ = range regions {
-		log.Println("I got a response!")
+		// log.Println("I got a response!")
 		<-resChan
 	}
 
@@ -115,11 +117,11 @@ func (ph *PlayerHandler) Region(ctx context.Context, request *RegionRequest) (*R
 
 	//Get Info from Regions
 	//Compile Info from Regions
-	visibleBlobs := make(map[*Blob]bool)
+	visibleBlobs := make(map[string]*Blob)
 	visibleFoods := make(map[*Food]bool)
 
 	regions := ph.Player.GetAOI() // returns list of region_id
-	resChan := make(chan *GetRegionResponse)
+	resChan := make(chan *GetRegionResponse, len(regions))
 	regionCall := func(regionId uint32, c chan *GetRegionResponse) {
 		// use router to get the grpc clientconn,
 		conn := ph.Router.Get(regionId)
@@ -141,9 +143,15 @@ func (ph *PlayerHandler) Region(ctx context.Context, request *RegionRequest) (*R
 		blobs := response.GetBlobs()
 		foods := response.GetFoods()
 
-		// TODO: Fix dedup
 		for _, b := range blobs {
-			visibleBlobs[b] = true
+			bid := BlobID(b)
+			if existingBlob, exists := visibleBlobs[bid]; exists {
+				if b.Seq > existingBlob.Seq {
+					visibleBlobs[bid] = b
+				}
+			} else {
+				visibleBlobs[bid] = b
+			}
 		}
 
 		for _, f := range foods {
@@ -155,7 +163,7 @@ func (ph *PlayerHandler) Region(ctx context.Context, request *RegionRequest) (*R
 	retBlobs := make([]*Blob, 0)
 	retFoods := make([]*Food, 0)
 
-	for b, _ := range visibleBlobs {
+	for _, b := range visibleBlobs {
 		retBlobs = append(retBlobs, b)
 	}
 
@@ -178,4 +186,15 @@ func (ph *PlayerHandler) MassIncrement(ctx context.Context, request *MassIncreme
 
 	response := MassIncrementResponse{}
 	return &response, nil
+}
+
+func GetRadiusFromMass(mass int32) float64 {
+	rad := math.Sqrt(float64(mass)) * float64(Conf.MASS_MULTIPLIER)
+	return rad
+}
+
+func BlobID(blob *Blob) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "%s:%x", blob.Ip, blob.Ver)
+	return b.String()
 }
