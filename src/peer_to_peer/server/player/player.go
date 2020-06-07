@@ -36,14 +36,14 @@ func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveR
 	// for now just echo response with increment on position
 	// log.Println("Moving!")
 	if !ph.Player.GetAlive() {
-		response := MoveResponse{
+		return &MoveResponse{
 			X:     0,
 			Y:     0,
 			Alive: false,
 			Mass:  0,
-		}
+		}, nil
 
-		return &response, nil
+		 // &response, nil
 	}
 
 	dx := request.GetX()
@@ -64,30 +64,23 @@ func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveR
 
 	x, y := ph.Player.UpdatePos(vx, vy)
 
-	response := MoveResponse{
-		X:     x,
-		Y:     y,
-		Alive: true,
-		Mass:  ph.Player.GetMass(), //TODO: change but leave for now
-	}
-
 	regions := ph.Player.GetAOI() // returns list of region_id
 	// log.Println("AOI", regions)
-	resChan := make(chan bool)
+	resChan := make(chan *UpdateRegionResponse, len(regions))
 	blob := ph.Player.GetBlob()
-	regionCall := func(regionId uint32, c chan bool) {
+	regionCall := func(regionId uint32, c chan *UpdateRegionResponse) {
 		// use router to get the grpc clientconn,
 		conn := ph.Router.Get(regionId)
 		// create client stub from clientconn
 		regionClient := NewRegionClient(conn)
 		clientUpdate := UpdateRegionRequest{Blob: blob, Id: regionId}
-		_, err := regionClient.ClientUpdate(context.Background(), &clientUpdate)
+		r, err := regionClient.ClientUpdate(context.Background(), &clientUpdate)
 		// log.Println(err)
 		if err != nil {
 			log.Println("client updates big no no: ", err)
 		}
 		// call method on goroutine
-		c <- true
+		c <- r
 	}
 
 	for _, regionId := range regions {
@@ -96,7 +89,24 @@ func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveR
 
 	for _ = range regions {
 		// log.Println("I got a response!")
-		<-resChan
+		resp := <-resChan
+		if !resp.Alive {
+			ph.Player.Die()
+			return &MoveResponse{
+				X:     0,
+				Y:     0,
+				Alive: false,
+				Mass:  0,
+			}, nil
+		}
+		ph.Player.IncrementMass(resp.DeltaMass)
+	}
+	
+	response := MoveResponse{
+		X:     x,
+		Y:     y,
+		Alive: true,
+		Mass:  ph.Player.GetMass(), //TODO: change but leave for now
 	}
 
 	return &response, nil

@@ -13,10 +13,15 @@ import sys
 IP = sys.argv[1]
 RUN = sys.argv[2]
 # BOT = bool(sys.argv[2])
+<<<<<<< HEAD
 BOT = True
 print("Connecting on ip:", IP)
 grpc_wrapper = GRPCWrapper(IP, RUN)
 signal.signal(signal.SIGINT, grpc_wrapper.flush)
+=======
+BOT = False
+print("Coneccting on ip:", IP)
+>>>>>>> 349ab9de9c5c08ed05389ddcc123186750cb938b
 
 pygame.init()
 PLAYER_COLORS = [(37,7,255),(35,183,253),(48,254,241),(19,79,251),(255,7,230),(255,7,23),(6,254,13)]
