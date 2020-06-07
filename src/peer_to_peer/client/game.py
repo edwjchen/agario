@@ -2,16 +2,21 @@
 import grpc
 import player_pb2
 import player_pb2_grpc
+from grpcwrapper import GRPCWrapper
 
 import pygame,random,math
 import asyncio
 import time
+import signal
 import sys
 
 IP = sys.argv[1]
+RUN = sys.argv[2]
 # BOT = bool(sys.argv[2])
 BOT = True
-print("Coneccting on ip:", IP)
+print("Connecting on ip:", IP)
+grpc_wrapper = GRPCWrapper(IP, RUN)
+signal.signal(signal.SIGINT, grpc_wrapper.flush)
 
 pygame.init()
 PLAYER_COLORS = [(37,7,255),(35,183,253),(48,254,241),(19,79,251),(255,7,230),(255,7,23),(6,254,13)]
@@ -77,10 +82,8 @@ class Camera:
 
 class Blob:
     def __init__(self,surface,name = ""):
-        initRequest = player_pb2.InitRequest()
-        # print('Making init req')
-        initResponse = stub.Init(initRequest)
         # print('Made init req')
+        initResponse = grpc_wrapper.init()
         self.startX = self.x = initResponse.x
         self.startY = self.y = initResponse.y
         self.mass = initResponse.mass
@@ -177,11 +180,7 @@ class Blob:
             dX, dY = self.next_x, self.next_y
         else:
             dX,dY = pygame.mouse.get_pos()
-        moveRequest = player_pb2.MoveRequest()
-        moveRequest.id = self.name
-        moveRequest.x = dX
-        moveRequest.y = dY
-        moveResponse = stub.Move(moveRequest)
+        moveResponse = grpc_wrapper.move(self.name, dX, dY)
         # print("Move response: ", moveResponse)
 
         # print("end pos: ", moveResponse.x, moveResponse.y)
@@ -189,12 +188,19 @@ class Blob:
         self.y = moveResponse.y
 
     def draw(self,cam):
-        regionRequest = player_pb2.RegionRequest()
-        regionResponse = stub.Region(regionRequest)
+        regionResponse = grpc_wrapper.region()
+
+        foods = regionResponse.foods
+        self.foods = foods
+        for food in foods:
+            #only draw food if food is on screen
+
+            # color = FOOD_COLORS[random.randint(0,len(FOOD_COLORS)-1)]
+            color = FOOD_COLORS[0]
+            pygame.draw.circle(self.surface, color, (int((food.x*cam.zoom+cam.x)),int(food.y*cam.zoom+cam.y)),int(FOOD_MASS*cam.zoom))
 
         players = regionResponse.blobs
         self.players = players
-        print(players)
         for player in players:
             if player.name == self.name:
                 #update player mass
@@ -207,21 +213,11 @@ class Blob:
             x = cam.x
             y = cam.y
             d = get_diameter(player.mass)
-            print(d)
             pygame.draw.circle(self.surface,(col[0]-int(col[0]/3),int(col[1]-col[1]/3),int(col[2]-col[2]/3)),(int(player.x*zoom+x),int(player.y*zoom+y)),int((d/2+3)*zoom))
             pygame.draw.circle(self.surface,col,(int(player.x*cam.zoom+cam.x),int(player.y*cam.zoom+cam.y)),int(d/2*zoom))
             if(len(player.name) > 0):
                 fw, fh = font.size(player.name)
                 drawText(player.name, (player.x*cam.zoom+cam.x-int(fw/2),player.y*cam.zoom+cam.y-int(fh/2)),(50,50,50))
-
-        foods = regionResponse.foods
-        self.foods = foods
-        for food in foods:
-            #only draw food if food is on screen
-
-            # color = FOOD_COLORS[random.randint(0,len(FOOD_COLORS)-1)]
-            color = FOOD_COLORS[0]
-            pygame.draw.circle(self.surface, color, (int((food.x*cam.zoom+cam.x)),int(food.y*cam.zoom+cam.y)),int(FOOD_MASS*cam.zoom))
 
 
 class Piece:
