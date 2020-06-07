@@ -53,6 +53,12 @@ func (p *PlayerInfo) GetAlive() bool {
 	return p.Blob.Alive
 }
 
+func (p *PlayerInfo) Die() {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+	p.Blob.Alive = false
+}
+
 func (p *PlayerInfo) GetMass() int32 {
 	p.mux.Lock()
 	defer p.mux.Unlock()

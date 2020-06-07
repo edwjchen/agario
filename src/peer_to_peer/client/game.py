@@ -10,7 +10,7 @@ import sys
 
 IP = sys.argv[1]
 # BOT = bool(sys.argv[2])
-BOT = True
+BOT = False
 print("Coneccting on ip:", IP)
 
 pygame.init()

@@ -15,10 +15,10 @@ import (
 
 type RegionInfo struct {
 	FoodTree      *quadtree.Quadtree
-	PlayersIn     map[string]*player.PlayerInfo
+	// PlayersIn     map[string]*player.PlayerInfo
 	PlayersSeen   map[string]*player.PlayerInfo
 	foodMux       sync.Mutex
-	PlayerInMux   sync.Mutex
+	// PlayerInMux   sync.Mutex
 	PlayerSeenMux sync.Mutex
 	x             uint16
 	y             uint16
@@ -33,9 +33,9 @@ type RegionInfo struct {
 func (r *RegionInfo) InitRegion(x, y uint32) {
 	log.Println("initing region for x:", x, " y:", y)
 	r.foodMux.Lock()
-	r.PlayerInMux.Lock()
+	// r.PlayerInMux.Lock()
 	r.PlayerSeenMux.Lock()
-	r.PlayersIn = make(map[string]*player.PlayerInfo)
+	// r.PlayersIn = make(map[string]*player.PlayerInfo)
 	r.PlayersSeen = make(map[string]*player.PlayerInfo)
 	r.x = uint16(x)
 	r.y = uint16(y)
@@ -45,7 +45,7 @@ func (r *RegionInfo) InitRegion(x, y uint32) {
 	r.ymax = float64((y + 1) * Conf.REGION_MAP_HEIGHT)
 	r.FoodTree = quadtree.New(orb.Bound{Min: orb.Point{r.xmin, r.ymin}, Max: orb.Point{r.xmax, r.ymax}})
 	r.foodMux.Unlock()
-	r.PlayerInMux.Unlock()
+	// r.PlayerInMux.Unlock()
 	r.PlayerSeenMux.Unlock()
 }
 
@@ -78,16 +78,16 @@ func (r *RegionInfo) GetFood() []*Food {
 	return foodSlice
 }
 
-func (r *RegionInfo) GetIn() map[string]*player.PlayerInfo {
-	r.PlayerInMux.Lock()
-	defer r.PlayerInMux.Unlock()
-	copy := make(map[string]*player.PlayerInfo)
-	for k, v := range r.PlayersIn {
-		copy[k] = v
-	}
-	// copy := r.PlayersIn
-	return copy
-}
+// func (r *RegionInfo) GetIn() map[string]*player.PlayerInfo {
+// 	// r.PlayerInMux.Lock()
+// 	// defer r.PlayerInMux.Unlock()
+// 	copy := make(map[string]*player.PlayerInfo)
+// 	// for k, v := range r.PlayersIn {
+// 		copy[k] = v
+// 	}
+// 	copy := r.PlayersIn
+// 	return copy
+// }
 
 func (r *RegionInfo) GetSeen() map[string]*player.PlayerInfo {
 	r.PlayerSeenMux.Lock()
@@ -122,13 +122,13 @@ func (r *RegionInfo) spawnFood() {
 }
 
 func (r *RegionInfo) blobCacheClear() {
-	r.PlayerInMux.Lock()
-	for k, p := range r.PlayersIn {
-		if time.Now().Sub(p.LastUpdate) > time.Millisecond*500 {
-			delete(r.PlayersIn, k)
-		}
-	}
-	r.PlayerInMux.Unlock()
+	// r.PlayerInMux.Lock()
+	// for k, p := range r.PlayersIn {
+	// 	if time.Now().Sub(p.LastUpdate) > time.Millisecond*500 {
+	// 		delete(r.PlayersIn, k)
+	// 	}
+	// }
+	// r.PlayerInMux.Unlock()
 
 	r.PlayerSeenMux.Lock()
 	for k, p := range r.PlayersSeen {
@@ -184,7 +184,7 @@ func getRegionID(x, y uint16) uint32 {
 }
 
 func (r *RegionInfo) BlobIsIn(blob *Blob) bool {
-	return r.xmin < blob.X && blob.X < r.xmax && r.ymin < blob.Y && blob.Y < r.ymax
+	return r.xmin <= blob.X && blob.X < r.xmax && r.ymin <= blob.Y && blob.Y < r.ymax
 }
 
 func (r *RegionInfo) WasEaten(blob *Blob) (bool, *Blob) {
@@ -195,20 +195,36 @@ func (r *RegionInfo) WasEaten(blob *Blob) (bool, *Blob) {
 	// 	Max: orb.Point{blob.X + blobRadius, blob.Y + blobRadius},
 	// }
 
-	for ip, playerSeen := range r.PlayersSeen {
-		if ip == blob.Ip {
+	for _, playerSeen := range r.PlayersSeen {
+		if playerSeen.Blob.Ip == blob.Ip {
 			continue
 		}
+		log.Println(blob.Ip, "(mass:", blob.Mass, ") invoked eat, checking", playerSeen.Blob.Ip,  "(mass:",  playerSeen.Blob.Mass)
 
 		currBlob := playerSeen.GetBlob()
 		currBlobRadius := player.GetRadiusFromMass(currBlob.Mass)
 
 		centerDistance := blobDistance(blob.X, blob.Y, currBlob.X, currBlob.Y)
+		log.Println(blob.Ip, "r:", blobRadius, ";", playerSeen.Blob.Ip, "r:",  currBlobRadius, "CR: ", centerDistance)
 
-		if blobRadius > (centerDistance + currBlobRadius + Conf.EAT_RADIUS_DELTA) {
+		if currBlobRadius > (centerDistance + blobRadius + Conf.EAT_RADIUS_DELTA) {
 			return false, currBlob
 		}
 	}
+	// for _, playerSeen := range r.PlayersIn {
+	// 	if playerSeen.Blob.Ip == blob.Ip {
+	// 		continue
+	// 	}
+
+	// 	currBlob := playerSeen.GetBlob()
+	// 	currBlobRadius := player.GetRadiusFromMass(currBlob.Mass)
+
+	// 	centerDistance := blobDistance(blob.X, blob.Y, currBlob.X, currBlob.Y)
+
+	// 	if currBlobRadius > (centerDistance + blobRadius + Conf.EAT_RADIUS_DELTA) {
+	// 		return false, currBlob
+	// 	}
+	// }
 
 	return true, nil
 }

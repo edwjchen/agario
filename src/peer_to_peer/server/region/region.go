@@ -77,9 +77,9 @@ func (rh *RegionHandler) GetRegion(ctx context.Context, request *IdRegionRequest
 	for name, p := range region.GetSeen() {
 		allPlayers[name] = p.GetBlob()
 	}
-	for name, p := range region.GetIn() {
-		allPlayers[name] = p.GetBlob()
-	}
+	// for name, p := range region.GetIn() {
+	// 	allPlayers[name] = p.GetBlob()
+	// }
 	blobs := []*Blob{}
 	for _, blob := range allPlayers {
 		blobs = append(blobs, blob)
@@ -150,12 +150,21 @@ func (rh *RegionHandler) ClientUpdate(ctx context.Context, request *UpdateRegion
 	// 		massIncrease = getMasncreaseFromFood(player)
 	// 		UpdatePos in local region hint cache
 
-	region.PlayerInMux.Lock()
-	defer region.PlayerInMux.Unlock()
+	// region.PlayerInMux.Lock()
+	// defer region.PlayerInMux.Unlock()
 	region.PlayerSeenMux.Lock()
 	defer region.PlayerSeenMux.Unlock()
 
-	region.PlayersIn[updatedBlobID] = updatedPlayerInfo
+	_, ok := region.PlayersSeen[updatedBlobID]
+	if ok && !region.PlayersSeen[updatedBlobID].Blob.Alive {
+		response := UpdateRegionResponse{
+			DeltaMass: 0,
+			Alive:     false,
+		}
+		return &response, nil
+	}
+
+	// region.PlayersIn[updatedBlobID] = updatedPlayerInfo
 	region.PlayersSeen[updatedBlobID] = updatedPlayerInfo
 
 	if !updatedBlob.Alive {
@@ -167,6 +176,7 @@ func (rh *RegionHandler) ClientUpdate(ctx context.Context, request *UpdateRegion
 		return &response, nil
 	}
 
+
 	var massIncrease int32
 
 	if region.BlobIsIn(updatedBlob) {
@@ -175,7 +185,7 @@ func (rh *RegionHandler) ClientUpdate(ctx context.Context, request *UpdateRegion
 			massIncrease = region.GetNumFoodsEaten(updatedBlob)
 		} else {
 			updatedBlob.Alive = false
-			region.PlayersIn[updatedBlobID].Blob.Alive = false
+			// region.PlayersIn[updatedBlobID].Blob.Alive = false
 			region.PlayersSeen[updatedBlobID].Blob.Alive = false
 
 			eaterServer := rh.Router.GetPlayerConn(eater.Ip)
@@ -188,6 +198,7 @@ func (rh *RegionHandler) ClientUpdate(ctx context.Context, request *UpdateRegion
 					rh.Router.InvalidatePlayerConn(eater.Ip)
 				}
 			}
+			log.Println("DEAD!!!")
 			return &UpdateRegionResponse{DeltaMass: 0, Alive: false}, nil
 		}
 	} else {
@@ -196,17 +207,17 @@ func (rh *RegionHandler) ClientUpdate(ctx context.Context, request *UpdateRegion
 
 	// log.Println(updatedBlob.Ip)
 	// log.Println(massIncrease)
-	if massIncrease != 0 {
-		playerServer := rh.Router.GetPlayerConn(updatedBlob.Ip)
-		client := NewPlayerClient(playerServer)
-		// log.Println(client)
-		massIncReq := &MassIncrementRequest{MassIncrease: massIncrease}
-		_, err := client.MassIncrement(context.Background(), massIncReq)
-		if err != nil {
-			log.Println("Failed increment", err)
-			rh.Router.InvalidatePlayerConn(updatedBlob.Ip)
-		}
-	}
+	// if massIncrease != 0 {
+	// 	playerServer := rh.Router.GetPlayerConn(updatedBlob.Ip)
+	// 	client := NewPlayerClient(playerServer)
+	// 	// log.Println(client)
+	// 	massIncReq := &MassIncrementRequest{MassIncrease: massIncrease}
+	// 	_, err := client.MassIncrement(context.Background(), massIncReq)
+	// 	if err != nil {
+	// 		log.Println("Failed increment", err)
+	// 		rh.Router.InvalidatePlayerConn(updatedBlob.Ip)
+	// 	}
+	// }
 
 	response := UpdateRegionResponse{
 		DeltaMass: massIncrease,
