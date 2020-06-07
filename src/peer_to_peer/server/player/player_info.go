@@ -6,27 +6,27 @@ import (
 	"math/rand"
 	. "peer_to_peer/common"
 	"strconv"
-	"sync"
+	// "sync"
 	"time"
 )
 
 type PlayerInfo struct {
 	Blob       Blob
 	LastUpdate time.Time
-	mux        sync.Mutex
+	// mux        sync.Mutex
 	addr       string
 }
 
 func (p *PlayerInfo) InitIP(addr string) {
-	p.mux.Lock()
-	defer p.mux.Unlock()
+	// p.mux.Lock()
+	// defer p.mux.Unlock()
 	p.addr = addr
 }
 
 func (p *PlayerInfo) NewBlob() (string, float64, float64, int32, int32) {
 	// TODO change to map
-	p.mux.Lock()
-	defer p.mux.Unlock()
+	// p.mux.Lock()
+	// defer p.mux.Unlock()
 
 	var x float64 = 400.0
 	var y float64 = 200.0
@@ -48,26 +48,26 @@ func (p *PlayerInfo) NewBlob() (string, float64, float64, int32, int32) {
 }
 
 func (p *PlayerInfo) GetAlive() bool {
-	p.mux.Lock()
-	defer p.mux.Unlock()
+	// p.mux.Lock()
+	// defer p.mux.Unlock()
 	return p.Blob.Alive
 }
 
 func (p *PlayerInfo) Die() {
-	p.mux.Lock()
-	defer p.mux.Unlock()
+	// p.mux.Lock()
+	// defer p.mux.Unlock()
 	p.Blob.Alive = false
 }
 
 func (p *PlayerInfo) GetMass() int32 {
-	p.mux.Lock()
-	defer p.mux.Unlock()
+	// p.mux.Lock()
+	// defer p.mux.Unlock()
 	return p.Blob.Mass
 }
 
 func (p *PlayerInfo) GetBlob() *Blob {
-	p.mux.Lock()
-	defer p.mux.Unlock()
+	// p.mux.Lock()
+	// defer p.mux.Unlock()
 	b := &Blob{
 		Ip:    p.Blob.Ip,
 		X:     p.Blob.X,
@@ -75,13 +75,14 @@ func (p *PlayerInfo) GetBlob() *Blob {
 		Mass:  p.Blob.Mass,
 		Alive: p.Blob.Alive,
 		Ver:   p.Blob.Ver,
+		Seq:   p.Blob.Seq,
 	}
 	return b
 }
 
 func (p *PlayerInfo) UpdatePos(dx float64, dy float64) (float64, float64) {
-	p.mux.Lock()
-	defer p.mux.Unlock()
+	// p.mux.Lock()
+	// defer p.mux.Unlock()
 	updateBlob := &p.Blob
 	updateBlob.Seq++
 
@@ -105,8 +106,8 @@ func (p *PlayerInfo) UpdatePos(dx float64, dy float64) (float64, float64) {
 }
 
 func (p *PlayerInfo) IncrementMass(deltaMass int32) {
-	p.mux.Lock()
-	defer p.mux.Unlock()
+	// p.mux.Lock()
+	// defer p.mux.Unlock()
 
 	//Poison food
 	prob := rand.Intn(Conf.POISON_PROB)
@@ -117,10 +118,18 @@ func (p *PlayerInfo) IncrementMass(deltaMass int32) {
 	p.Blob.Mass = max(p.Blob.Mass+deltaMass, Conf.STARTING_MASS)
 }
 
+func (p *PlayerInfo) UpdateSeq() {
+	// p.mux.Lock()
+	// defer p.mux.Unlock()
+
+	p.Blob.Seq = time.Now().UnixNano()
+}
+
+
 // Returns a list of region ids
 func (p *PlayerInfo) GetAOI() []uint32 {
-	p.mux.Lock()
-	defer p.mux.Unlock()
+	// p.mux.Lock()
+	// defer p.mux.Unlock()
 	diameter := GetRadiusFromMass(p.Blob.Mass) * 2.0
 	zoom_factor := Conf.ZOOM/diameter + 0.3
 	top_left_x := p.Blob.X - float64(Conf.SCREEN_WIDTH)/zoom_factor/2

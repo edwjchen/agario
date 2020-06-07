@@ -43,7 +43,7 @@ func (r *RegionInfo) InitRegion(x, y uint32) {
 	r.xmax = float64((x + 1) * Conf.REGION_MAP_WIDTH)
 	r.ymin = float64(y * Conf.REGION_MAP_HEIGHT)
 	r.ymax = float64((y + 1) * Conf.REGION_MAP_HEIGHT)
-	r.FoodTree = quadtree.New(orb.Bound{Min: orb.Point{r.xmin, r.ymin}, Max: orb.Point{r.xmax, r.ymax}})
+	r.FoodTree = quadtree.New(orb.Bound{Min: orb.Point{0, 0}, Max: orb.Point{float64(Conf.MAP_WIDTH), float64(Conf.MAP_HEIGHT)}})
 	r.foodMux.Unlock()
 	// r.PlayerInMux.Unlock()
 	r.PlayerSeenMux.Unlock()
@@ -143,6 +143,7 @@ func (r *RegionInfo) removeFood(foodPointer orb.Pointer) {
 	// r.PlayerInMux.Lock()
 	// r.PlayerSeenMux.Lock()
 	r.FoodTree.Remove(foodPointer, nil)
+	log.Println("Removing", foodPointer)
 	// if len(r.PlayersIn) == 0 && len(r.PlayersSeen) == 0 {
 	// 	log.Printf("Eating with no player exist")
 	// }

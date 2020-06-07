@@ -7,7 +7,7 @@ message Blob {
   bool alive = 4;
   int32 mass = 5;
   int32 ver = 6;
-  uint64 seq = 7;
+  int64 seq = 7;
 }
 message Food {
   double x = 1;

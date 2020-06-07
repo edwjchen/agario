@@ -82,7 +82,10 @@ func (rh *RegionHandler) GetRegion(ctx context.Context, request *IdRegionRequest
 	// }
 	blobs := []*Blob{}
 	for _, blob := range allPlayers {
-		blobs = append(blobs, blob)
+		// log.Println("seq: ", blob.Seq)
+		if blob.Alive && blob.Seq > 0 {
+			blobs = append(blobs, blob)
+		}
 	}
 
 	response := GetRegionResponse{
@@ -118,6 +121,7 @@ func (rh *RegionHandler) ClientUpdate(ctx context.Context, request *UpdateRegion
 	rh.mux.RUnlock()
 
 	updatedBlob := request.GetBlob()
+
 	updatedPlayerInfo := &PlayerInfo{
 		Blob:       *updatedBlob,
 		LastUpdate: time.Now(),
@@ -155,27 +159,32 @@ func (rh *RegionHandler) ClientUpdate(ctx context.Context, request *UpdateRegion
 	region.PlayerSeenMux.Lock()
 	defer region.PlayerSeenMux.Unlock()
 
-	_, ok := region.PlayersSeen[updatedBlobID]
-	if ok && !region.PlayersSeen[updatedBlobID].Blob.Alive {
-		response := UpdateRegionResponse{
-			DeltaMass: 0,
-			Alive:     false,
+	existingPlayer, ok := region.PlayersSeen[updatedBlobID]
+	if ok {
+		// blob already dead: DEAD
+		if !region.PlayersSeen[updatedBlobID].Blob.Alive {
+			return &UpdateRegionResponse{DeltaMass: 0, Alive: false}, nil
+		} 
+		// OO info: ignore
+		if updatedBlob.Seq > 0 && existingPlayer.Blob.Seq > updatedBlob.Seq {
+			return &UpdateRegionResponse{DeltaMass: 0, Alive: true}, nil
 		}
-		return &response, nil
-	}
+
+		
+	} 
 
 	// region.PlayersIn[updatedBlobID] = updatedPlayerInfo
 	region.PlayersSeen[updatedBlobID] = updatedPlayerInfo
 
 	if !updatedBlob.Alive {
 		// Remove blob from cache
-		response := UpdateRegionResponse{
-			DeltaMass: 0,
-			Alive:     false,
-		}
-		return &response, nil
+		return &UpdateRegionResponse{DeltaMass: 0, Alive: false}, nil
 	}
 
+	// Eviction info: just ignore
+	if updatedBlob.Seq < 0 {
+		return &UpdateRegionResponse{DeltaMass: 0, Alive: true}, nil
+	}
 
 	var massIncrease int32
 

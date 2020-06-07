@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"sync"
 	. "peer_to_peer/common"
 	. "peer_to_peer/server/player_pb"
 	. "peer_to_peer/server/region_pb"
@@ -14,12 +15,16 @@ import (
 )
 
 type PlayerHandler struct {
-	Player PlayerInfo
-	Router *router.Router
+	Player      PlayerInfo
+	Mux         sync.Mutex
+	Router      *router.Router
+	PrevRegions map[uint32]bool
 }
 
 func (ph *PlayerHandler) Init(ctx context.Context, request *InitRequest) (*InitResponse, error) {
+	ph.Mux.Lock()
 	newBlobIp, startX, startY, mass, ver := ph.Player.NewBlob()
+	ph.Mux.Unlock()
 	response := InitResponse{
 		Ip:   newBlobIp,
 		Ver:  ver,
@@ -35,6 +40,9 @@ func (ph *PlayerHandler) Init(ctx context.Context, request *InitRequest) (*InitR
 func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveResponse, error) {
 	// for now just echo response with increment on position
 	// log.Println("Moving!")
+	ph.Mux.Lock()
+	defer ph.Mux.Unlock()
+
 	if !ph.Player.GetAlive() {
 		return &MoveResponse{
 			X:     0,
@@ -48,6 +56,8 @@ func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveR
 
 	dx := request.GetX()
 	dy := request.GetY()
+
+	ph.Player.UpdateSeq()
 
 	// log.Println("dw & dy", dx, dy)
 
@@ -65,9 +75,11 @@ func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveR
 	x, y := ph.Player.UpdatePos(vx, vy)
 
 	regions := ph.Player.GetAOI() // returns list of region_id
+
 	// log.Println("AOI", regions)
 	resChan := make(chan *UpdateRegionResponse, len(regions))
 	blob := ph.Player.GetBlob()
+
 	regionCall := func(regionId uint32, c chan *UpdateRegionResponse) {
 		// use router to get the grpc clientconn,
 		conn := ph.Router.Get(regionId)
@@ -83,15 +95,36 @@ func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveR
 		c <- r
 	}
 
+	newRegions := make(map[uint32]bool)
+
 	for _, regionId := range regions {
+		// log.Println("Adding ", regionId)
 		go regionCall(regionId, resChan)
+		delete(ph.PrevRegions, regionId)
+		newRegions[regionId] = true
 	}
+
+	evictBlob := ph.Player.GetBlob()
+	evictBlob.Seq = -1
+	evictChan := make(chan *UpdateRegionResponse, len(ph.PrevRegions))
+	for erid, _ := range ph.PrevRegions {
+		// log.Println("Evicting ", erid)
+		go regionCall(erid, evictChan)
+	}
+	ph.PrevRegions = newRegions
 
 	for _ = range regions {
 		// log.Println("I got a response!")
 		resp := <-resChan
 		if !resp.Alive {
 			ph.Player.Die()
+			// evictBlob := ph.Player.GetBlob()
+			// evictBlob.Alive = false
+			// for erid, _ := range ph.PrevRegions {
+			// // log.Println("Evicting ", erid)
+			//   evictChan := make(chan *UpdateRegionResponse, len(ph.PrevRegions))
+			// 	go regionCall(erid, evictChan)
+			// }
 			return &MoveResponse{
 				X:     0,
 				Y:     0,
@@ -101,7 +134,7 @@ func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveR
 		}
 		ph.Player.IncrementMass(resp.DeltaMass)
 	}
-	
+
 	response := MoveResponse{
 		X:     x,
 		Y:     y,
@@ -130,7 +163,10 @@ func (ph *PlayerHandler) Region(ctx context.Context, request *RegionRequest) (*R
 	visibleBlobs := make(map[string]*Blob)
 	visibleFoods := make(map[*Food]bool)
 
+	ph.Mux.Lock()
 	regions := ph.Player.GetAOI() // returns list of region_id
+	ph.Mux.Unlock()
+
 	resChan := make(chan *GetRegionResponse, len(regions))
 	regionCall := func(regionId uint32, c chan *GetRegionResponse) {
 		// use router to get the grpc clientconn,
@@ -192,7 +228,9 @@ func (ph *PlayerHandler) Region(ctx context.Context, request *RegionRequest) (*R
 
 func (ph *PlayerHandler) MassIncrement(ctx context.Context, request *MassIncrementRequest) (*MassIncrementResponse, error) {
 	deltaMass := request.GetMassIncrease()
+	ph.Mux.Lock()
 	ph.Player.IncrementMass(deltaMass)
+	ph.Mux.Unlock()
 
 	response := MassIncrementResponse{}
 	return &response, nil

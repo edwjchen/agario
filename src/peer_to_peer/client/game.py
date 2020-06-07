@@ -13,15 +13,11 @@ import sys
 IP = sys.argv[1]
 RUN = sys.argv[2]
 # BOT = bool(sys.argv[2])
-<<<<<<< HEAD
-BOT = True
+
+BOT = False
 print("Connecting on ip:", IP)
 grpc_wrapper = GRPCWrapper(IP, RUN)
 signal.signal(signal.SIGINT, grpc_wrapper.flush)
-=======
-BOT = False
-print("Coneccting on ip:", IP)
->>>>>>> 349ab9de9c5c08ed05389ddcc123186750cb938b
 
 pygame.init()
 PLAYER_COLORS = [(37,7,255),(35,183,253),(48,254,241),(19,79,251),(255,7,230),(255,7,23),(6,254,13)]
@@ -214,15 +210,16 @@ class Blob:
                 self.mass = player.mass
                 self.alive = player.alive
             col = self.color
-            zoom = cam.zoom
-            x = cam.x
-            y = cam.y
-            d = get_diameter(player.mass)
-            pygame.draw.circle(self.surface,(col[0]-int(col[0]/3),int(col[1]-col[1]/3),int(col[2]-col[2]/3)),(int(player.x*zoom+x),int(player.y*zoom+y)),int((d/2+3)*zoom))
-            pygame.draw.circle(self.surface,col,(int(player.x*cam.zoom+cam.x),int(player.y*cam.zoom+cam.y)),int(d/2*zoom))
-            if(len(player.name) > 0):
-                fw, fh = font.size(player.name)
-                drawText(player.name, (player.x*cam.zoom+cam.x-int(fw/2),player.y*cam.zoom+cam.y-int(fh/2)),(50,50,50))
+            if player.alive:
+                zoom = cam.zoom
+                x = cam.x
+                y = cam.y
+                d = get_diameter(player.mass)
+                pygame.draw.circle(self.surface,(col[0]-int(col[0]/3),int(col[1]-col[1]/3),int(col[2]-col[2]/3)),(int(player.x*zoom+x),int(player.y*zoom+y)),int((d/2+3)*zoom))
+                pygame.draw.circle(self.surface,col,(int(player.x*cam.zoom+cam.x),int(player.y*cam.zoom+cam.y)),int(d/2*zoom))
+                if(len(player.name) > 0):
+                    fw, fh = font.size(player.name)
+                    drawText(player.name, (player.x*cam.zoom+cam.x-int(fw/2),player.y*cam.zoom+cam.y-int(fh/2)),(50,50,50))
 
 
 class Piece:
