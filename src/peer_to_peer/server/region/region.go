@@ -41,7 +41,6 @@ func (rh *RegionHandler) Init() {
 			binary.LittleEndian.PutUint32(b, regionID)
 			hasher.Write(b)
 			h := uint32(hasher.Sum32())
-
 			if rh.Router.Successor(h) == rh.Router.Hash {
 				newRegion := &RegionInfo{}
 				newRegion.InitRegion(i, j)

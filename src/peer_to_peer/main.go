@@ -16,8 +16,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func main() {
-
+func main() {	
 	myAddr := os.Args[1]
 	basePath := "/src/peer_to_peer/common/"
 	configPath := "/src/peer_to_peer/common/config.json"

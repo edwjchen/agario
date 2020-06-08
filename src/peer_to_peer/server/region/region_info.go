@@ -9,12 +9,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/paulmach/orb"
-	"github.com/paulmach/orb/quadtree"
+	// "github.com/paulmach/orb"
+	// "github.com/paulmach/orb/quadtree"
 )
 
+type Point struct {
+	X float64
+	Y float64
+}
+
 type RegionInfo struct {
-	FoodTree      *quadtree.Quadtree
+	FoodTree      map[Point]bool
 	// PlayersIn     map[string]*player.PlayerInfo
 	PlayersSeen   map[string]*player.PlayerInfo
 	foodMux       sync.Mutex
@@ -43,7 +48,8 @@ func (r *RegionInfo) InitRegion(x, y uint32) {
 	r.xmax = float64((x + 1) * Conf.REGION_MAP_WIDTH)
 	r.ymin = float64(y * Conf.REGION_MAP_HEIGHT)
 	r.ymax = float64((y + 1) * Conf.REGION_MAP_HEIGHT)
-	r.FoodTree = quadtree.New(orb.Bound{Min: orb.Point{0, 0}, Max: orb.Point{float64(Conf.MAP_WIDTH), float64(Conf.MAP_HEIGHT)}})
+	//r.FoodTree = quadtree.New(orb.Bound{Min: orb.Point{0, 0}, Max: orb.Point{float64(Conf.MAP_WIDTH), float64(Conf.MAP_HEIGHT)}})
+	r.FoodTree = make(map[Point]bool)
 	r.foodMux.Unlock()
 	// r.PlayerInMux.Unlock()
 	r.PlayerSeenMux.Unlock()
@@ -67,13 +73,15 @@ func (r *RegionInfo) MaintainRegion() {
 func (r *RegionInfo) GetFood() []*Food {
 	r.foodMux.Lock()
 	defer r.foodMux.Unlock()
-	bound := orb.Bound{Min: orb.Point{r.xmin, r.ymin}, Max: orb.Point{r.xmax, r.ymax}}
-	foods := r.FoodTree.InBound([]orb.Pointer{}, bound)
+	// bound := orb.Bound{Min: orb.Point{r.xmin, r.ymin}, Max: orb.Point{r.xmax, r.ymax}}
+	// foods := r.FoodTree.InBound([]orb.Pointer{}, bound)
 
-	foodSlice := make([]*Food, len(foods))
-	for idx, food := range foods {
-		point := food.Point()
-		foodSlice[idx] = &Food{X: point.X(), Y: point.Y()}
+	foodSlice := make([]*Food, len(r.FoodTree))
+	idx := 0
+	for food, _ := range r.FoodTree {
+		// point := food.Point()
+		foodSlice[idx] = &Food{X: food.X, Y: food.Y}
+		idx++
 	}
 	return foodSlice
 }
@@ -105,19 +113,22 @@ func (r *RegionInfo) spawnFood() {
 	defer r.foodMux.Unlock()
 
 	// TODO: Check if we have enought food
+	log.Println("number of foods: ", r.getNumFoods())
 	if r.getNumFoods() > Conf.MAX_FOOD_NUM {
 		return
 	}
 
 	spawnRandNum := rand.Intn(int(Conf.MAX_FOOD_NUM))
+	log.Println("SPAWNING FOOD: ", spawnRandNum)
 
 	for i := 0; i < spawnRandNum; i++ {
 		x := float64(rand.Intn(int(Conf.REGION_MAP_WIDTH))) + r.xmin
 		y := float64(rand.Intn(int(Conf.REGION_MAP_HEIGHT))) + r.ymin
 
-		foodPoint := orb.Point{x, y}
+		foodPoint := Point{X: x, Y: y} //orb.Point{x, y}
 
-		r.FoodTree.Add(foodPoint)
+		r.FoodTree[foodPoint] = true // .Add(foodPoint)
+
 	}
 }
 
@@ -139,11 +150,12 @@ func (r *RegionInfo) blobCacheClear() {
 	r.PlayerSeenMux.Unlock()
 }
 
-func (r *RegionInfo) removeFood(foodPointer orb.Pointer) {
+func (r *RegionInfo) removeFood(food Point) {
 	// r.PlayerInMux.Lock()
 	// r.PlayerSeenMux.Lock()
-	r.FoodTree.Remove(foodPointer, nil)
-	log.Println("Removing", foodPointer)
+	// r.FoodTree.Remove(foodPointer, nil)
+	delete(r.FoodTree, food)
+	log.Println("Removing", food)
 	// if len(r.PlayersIn) == 0 && len(r.PlayersSeen) == 0 {
 	// 	log.Printf("Eating with no player exist")
 	// }
@@ -159,25 +171,29 @@ func (r *RegionInfo) GetNumFoodsEaten(blob *Blob) int32 {
 	r.foodMux.Lock()
 	defer r.foodMux.Unlock()
 	radius := player.GetRadiusFromMass(blob.Mass)
-	playerBound := orb.Bound{Min: orb.Point{blob.X - radius, blob.Y - radius}, Max: orb.Point{blob.X + radius, blob.Y + radius}}
 
-	foodSlice := r.FoodTree.InBound([]orb.Pointer{}, playerBound)
-	for _, food := range foodSlice {
-		r.removeFood(food)
+	//playerBound := orb.Bound{Min: orb.Point{blob.X - radius, blob.Y - radius}, Max: orb.Point{blob.X + radius, blob.Y + radius}}
+
+	// foodSlice := r.FoodTree.InBound([]orb.Pointer{}, playerBound)
+	eaten := 0
+	for food, _ := range r.FoodTree {
+		if blobDistance(blob.X, blob.Y, food.X, food.Y) <= radius {
+			r.removeFood(food)
+			eaten++
+		}
 	}
 	// log.Println("mass: ", blob.Mass, ", Radius: ", radius, ",playerbound: ", playerBound, ", Eating: ", foodSlice)
 
 	// bound := orb.Bound{Min: orb.Point{0, 0}, Max: orb.Point{MAP_WIDTH, MAP_HEIGHT}}
 	// log.Println(f.FoodTree.InBound([]orb.Pointer{}, bound))
-
-	return int32(len(foodSlice))
+	return int32(eaten)
 }
 
 // Precondition: calling function already has lock on r.foodMux
 func (r *RegionInfo) getNumFoods() uint32 {
-	bound := orb.Bound{Min: orb.Point{r.xmin, r.ymin}, Max: orb.Point{r.xmax, r.ymax}}
-	foods := r.FoodTree.InBound([]orb.Pointer{}, bound)
-	return uint32(len(foods))
+	// bound := orb.Bound{Min: orb.Point{r.xmin, r.ymin}, Max: orb.Point{r.xmax, r.ymax}}
+	// foods := r.FoodTree.InBound([]orb.Pointer{}, bound)
+	return uint32(len(r.FoodTree))
 }
 
 func getRegionID(x, y uint16) uint32 {
