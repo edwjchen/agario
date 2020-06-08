@@ -6,12 +6,14 @@ import (
 	// "io/ioutil"
 	"log"
 	"net"
+
 	// "net/http"
+	"client_server/server/info"
+	"math"
+	"time"
+
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"math"
-	"client_server/server/info"
-	"time"
 	// "github.com/golang/protobuf/proto"
 )
 
@@ -24,19 +26,18 @@ const STARTING_MASS = info.STARTING_MASS
 var foodInfo info.FoodInfo
 var blobsInfo info.BlobsInfo
 
-
 func main() {
 	grpcServer := grpc.NewServer()
 	var server Server
-  blob.RegisterBlobServer(grpcServer, server)
-  blobsInfo.InitBlobs()
-  foodInfo.InitFood()
+	blob.RegisterBlobServer(grpcServer, server)
+	blobsInfo.InitBlobs()
+	foodInfo.InitFood()
 	listen, err := net.Listen("tcp", "0.0.0.0:3000")
 	if err != nil {
 		log.Fatalf("could not listen to 0.0.0.0:3000 %v", err)
 	}
-  log.Println("Server starting...")
-  go spawnFood()
+	log.Println("Server starting...")
+	go spawnFood()
 	log.Fatal(grpcServer.Serve(listen))
 }
 
@@ -122,7 +123,7 @@ func (Server) Region(ctx context.Context, request *blob.RegionRequest) (*blob.Re
 }
 
 func spawnFood() {
-  ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(1 * time.Second)
 	for _ = range ticker.C {
 		foodInfo.SpawnFood()
 	}

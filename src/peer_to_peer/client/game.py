@@ -48,9 +48,7 @@ clock = pygame.time.Clock()
 
 #grpc constants
 #TODO Change stuff here
-channel = grpc.insecure_channel(IP)
-# print('channeled')
-stub = player_pb2_grpc.PlayerStub(channel)
+
 # print('stubbed')
 
 def drawText(message,pos,color=(255,255,255)):
@@ -296,11 +294,7 @@ while(True):
     #     c.draw(camera)
     blob.draw(camera)
     if not blob.alive:
-        channel.close()
-        time.sleep(10)
-        channel = grpc.insecure_channel(IP)
-        stub = player_pb2_grpc.PlayerStub(channel)
-        blob = Blob(surface,"Viliami")
+        grpc_wrapper.respawn()
         continue
 
     draw_HUD()

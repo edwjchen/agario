@@ -2,9 +2,19 @@
 import grpc
 import blob_pb2
 import blob_pb2_grpc
+from grpcwrapper import GRPCWrapper
 
 import pygame,random,math
 import asyncio
+import time
+import signal
+import sys
+
+IP = sys.argv[1]
+RUN = sys.argv[2]
+
+grpc_wrapper = GRPCWrapper(IP, RUN)
+signal.signal(signal.SIGINT, grpc_wrapper.flush)
 
 pygame.init()
 PLAYER_COLORS = [(37,7,255),(35,183,253),(48,254,241),(19,79,251),(255,7,230),(255,7,23),(6,254,13)]
@@ -32,8 +42,6 @@ food_list = list()
 clock = pygame.time.Clock()
 
 #grpc constants
-channel = grpc.insecure_channel('localhost:3000')
-stub = blob_pb2_grpc.BlobStub(channel)
 
 def drawText(message,pos,color=(255,255,255)):
     pos = (int(pos[0]), int(pos[1]))
@@ -63,8 +71,7 @@ class Camera:
 
 class Blob:
     def __init__(self,surface,name = ""):
-        initRequest = blob_pb2.InitRequest()
-        initResponse = stub.Init(initRequest)
+        initResponse = grpc_wrapper.init()
         self.startX = self.x = initResponse.x
         self.startY = self.y = initResponse.y
         self.mass = initResponse.mass
@@ -79,19 +86,14 @@ class Blob:
 
     def move(self):
         dX,dY = pygame.mouse.get_pos()
-        moveRequest = blob_pb2.MoveRequest()
-        moveRequest.id = self.name
-        moveRequest.x = dX
-        moveRequest.y = dY
-        moveResponse = stub.Move(moveRequest)
+        moveResponse = grpc_wrapper.move(self.name, dX, dY)
 
         # print("end pos: ", moveResponse.x, moveResponse.y)
         self.x = moveResponse.x
         self.y = moveResponse.y
 
     def draw(self,cam):
-        regionRequest = blob_pb2.RegionRequest()
-        regionResponse = stub.Region(regionRequest)
+        regionResponse = grpc_wrapper.region()
 
         players = regionResponse.players
         # print(players)
