@@ -13,7 +13,7 @@ class GRPCWrapper:
         self.port = IP.split(":")[1]
         self.channel = grpc.insecure_channel(IP)
         self.stub = player_pb2_grpc.PlayerStub(self.channel)
-        self.log_file_name = "./logs/" + str(run) + "|" + self.port + ".json"
+        self.log_file_name = "./logs/" + str(run) + ":" + self.port + ".json"
         self.region_rtts = []
         self.move_rtts = []
 
