@@ -80,7 +80,7 @@ func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveR
 	resChan := make(chan *UpdateRegionResponse, len(regions))
 	blob := ph.Player.GetBlob()
 
-	regionCall := func(regionId uint32, c chan *UpdateRegionResponse) {
+	regionCall := func(regionId uint32, c chan *UpdateRegionResponse, blob *Blob) {
 		// use router to get the grpc clientconn,
 		conn := ph.Router.Get(regionId)
 		// create client stub from clientconn
@@ -99,7 +99,7 @@ func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveR
 
 	for _, regionId := range regions {
 		// log.Println("Adding ", regionId)
-		go regionCall(regionId, resChan)
+		go regionCall(regionId, resChan, blob)
 		delete(ph.PrevRegions, regionId)
 		newRegions[regionId] = true
 	}
@@ -109,7 +109,7 @@ func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveR
 	evictChan := make(chan *UpdateRegionResponse, len(ph.PrevRegions))
 	for erid, _ := range ph.PrevRegions {
 		// log.Println("Evicting ", erid)
-		go regionCall(erid, evictChan)
+		go regionCall(erid, evictChan, evictBlob)
 	}
 	ph.PrevRegions = newRegions
 
@@ -118,13 +118,15 @@ func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveR
 		resp := <-resChan
 		if !resp.Alive {
 			ph.Player.Die()
-			// evictBlob := ph.Player.GetBlob()
-			// evictBlob.Alive = false
-			// for erid, _ := range ph.PrevRegions {
-			// // log.Println("Evicting ", erid)
-			//   evictChan := make(chan *UpdateRegionResponse, len(ph.PrevRegions))
-			// 	go regionCall(erid, evictChan)
-			// }
+
+			evictBlob := ph.Player.GetBlob()
+			evictChan := make(chan *UpdateRegionResponse, len(ph.PrevRegions))
+			for erid, _ := range ph.PrevRegions {
+				// log.Println("removing from ", erid)
+				go regionCall(erid, evictChan, evictBlob)
+			}
+			ph.PrevRegions = make(map[uint32]bool)
+			
 			return &MoveResponse{
 				X:     0,
 				Y:     0,
@@ -184,13 +186,14 @@ func (ph *PlayerHandler) Region(ctx context.Context, request *RegionRequest) (*R
 		go regionCall(regionId, resChan)
 	}
 
-	for _ = range regions {
+	for _= range regions {
 		response := <-resChan
 		blobs := response.GetBlobs()
 		foods := response.GetFoods()
 
 		for _, b := range blobs {
 			bid := BlobID(b)
+			// log.Println("Region", reg, "got blob ", b)
 			if existingBlob, exists := visibleBlobs[bid]; exists {
 				if b.Seq > existingBlob.Seq {
 					visibleBlobs[bid] = b
