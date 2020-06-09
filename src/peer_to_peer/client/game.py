@@ -14,7 +14,7 @@ IP = sys.argv[1]
 RUN = sys.argv[2]
 # BOT = bool(sys.argv[2])
 
-BOT = False
+BOT = True
 print("Connecting on ip:", IP)
 grpc_wrapper = GRPCWrapper(IP, RUN)
 signal.signal(signal.SIGINT, grpc_wrapper.flush)
@@ -33,8 +33,8 @@ MAP_LENGTH = 10000
 EAT_CONSTANT = 5
 MASS_MULTIPLIER = 3
 
-t_surface = pygame.Surface((95,25),pygame.SRCALPHA) #transparent rect for score
-t_lb_surface = pygame.Surface((155,278),pygame.SRCALPHA) #transparent rect for leaderboard
+t_surface = pygame.Surface((95,25)) #transparent rect for score
+t_lb_surface = pygame.Surface((155,278)) #transparent rect for leaderboard
 t_surface.fill((50,50,50,80))
 t_lb_surface.fill((50,50,50,80))
 
@@ -122,10 +122,10 @@ class Blob:
                     #move towards food
                     self.next_x = closest_food.x - self.x
                     self.next_y = closest_food.y - self.y
-                
+
                 else:
                     #move away
-                    self.next_x = self.x - closest_player.x 
+                    self.next_x = self.x - closest_player.x
                     self.next_y = self.y - closest_player.y
 
             else:
@@ -168,12 +168,12 @@ class Blob:
             return 0
         else:
             return -1
-        
+
 
     def move(self):
         self.move_count += 1
         if self.move_count >= 1000:
-            self.move_count = 0 
+            self.move_count = 0
 
         if BOT:
             dX, dY = self.next_x, self.next_y

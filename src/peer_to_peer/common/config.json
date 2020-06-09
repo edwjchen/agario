@@ -23,7 +23,6 @@
 
   "ENTRY_SERVER": "localhost:8080",
   "REGION_SERVERS": [
-    "localhost:3001",
-    "localhost:4001"
+    "localhost:3001"
   ]
 }
