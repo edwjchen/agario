@@ -6,6 +6,7 @@ import (
 	// "github.com/paulmach/orb/quadtree"
 	"math/rand"
 	"sync"
+	"math"
 	// "log"
 )
 
@@ -29,6 +30,7 @@ type FoodInfo struct {
 func (f *FoodInfo) InitFood() {
 	// TODO change to map
 	f.mux.Lock()
+	defer f.mux.Unlock()
 	// f.foodMap = make(map[blob.Food]*blob.Food)
 	//f.foodTree = quadtree.New(orb.Bound{Min: orb.Point{0, 0}, Max: orb.Point{MAP_WIDTH, MAP_HEIGHT}})
 	
@@ -43,7 +45,6 @@ func (f *FoodInfo) InitFood() {
 			f.SpawnFood(point)
 		}
 	}
-	f.mux.Unlock()
 }
 
 // Doesn't spawn food if not needed
@@ -129,7 +130,7 @@ func (f *FoodInfo) GetNumFoodsEaten(player *blob.Player) int32 {
 	return int32(len(foodEaten))
 }
 
-func (f *FoodInfo) GetFoods() []*blob.Food {
+func (f *FoodInfo) GetFoods(player *blob.Player) []*blob.Food {
 	f.mux.Lock()
 	defer f.mux.Unlock()
 
@@ -192,8 +193,4 @@ func max(a, b int32) int32 {
 		return a
 	}
 	return b
-}
-
-func blobDistance(x1, y1, x2, y2 float64) float64 {
-	return math.Sqrt((y2 - y1) * (y2 - y1) + (x2 - x1) * (x2 - x1))
 }
