@@ -24,15 +24,16 @@ message MoveResponse {
   int32 mass = 4;
 }
 message RegionRequest {
-  double x = 1;
-  double y = 2;
+  string id = 1;
+  double x = 2;
+  double y = 3;
 }
 message RegionResponse {
   repeated Player players = 1;
   repeated Food foods = 2;
 }
 message Player {
-  string string = 1;
+  string id = 1;
   double x = 2;
   double y = 3;
   bool alive = 4;
