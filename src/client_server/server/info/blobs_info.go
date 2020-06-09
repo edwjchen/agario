@@ -11,10 +11,17 @@ import (
 	"math"
 )
 
+const SCREEN_WIDTH = 800
+const SCREEN_HEIGHT = 500
 const MAP_WIDTH = 10000
 const MAP_HEIGHT = 10000
+const REGION_MAP_WIDTH = 500
+const REGION_MAP_HEIGHT = 500
+const MAX_FOOD_NUM = 30
 const STARTING_MASS = 20
+const MASS_MULTIPLIER = 3.0
 const EAT_RADIUS_DELTA = 5
+const ZOOM = 100
 const SERVER_ID = "server1::"
 
 type BlobsInfo struct {
@@ -153,7 +160,9 @@ func (b *BlobsInfo) removeBlob(blobPointer orb.Pointer, id string){
 	b.blobsMap[id].Alive = false
 }
 
-
 func blobDistance(x1, y1, x2, y2 float64) float64 {
 	return math.Sqrt((y2 - y1) * (y2 - y1) + (x2 - x1) * (x2 - x1))
 }
+
+
+
