@@ -129,7 +129,7 @@ func (r *RegionInfo) spawnFood() {
 		newFoods = append(newFoods, &Food{X: x, Y: y})
 
 	}
-	if r.Router.Successor(r.Router.Hash) != r.Router.Hash {
+	if r.Router.Successor(r.Router.Hash+1) != r.Router.Hash {
 		conn := r.Router.GetSuccessor()
 		regionClient := region_pb.NewRegionClient(conn)
 		_, err := regionClient.AddFoods(context.Background(), &region_pb.FoodRequest{Id: getRegionID(r.x, r.y), Foods: newFoods})
@@ -187,7 +187,7 @@ func (r *RegionInfo) GetNumFoodsEaten(blob *Blob) int32 {
 		}
 	}
 
-	if r.Router.Successor(r.Router.Hash) != r.Router.Hash {
+	if r.Router.Successor(r.Router.Hash+1) != r.Router.Hash {
 		conn := r.Router.GetSuccessor()
 		regionClient := region_pb.NewRegionClient(conn)
 		_, err := regionClient.RemoveFoods(context.Background(), &region_pb.FoodRequest{Id: getRegionID(r.x, r.y), Foods: foodEaten})
@@ -205,6 +205,7 @@ func (r *RegionInfo) AddFoods(foods []*Food) {
 	for _, f := range foods {
 		foodPoint := Point{X: f.X, Y: f.Y} //orb.Point{x, y}
 		r.FoodTree[foodPoint] = true // .Add(foodPoint)
+		log.Println("Bkup adding", foodPoint)
 	}
 }
 
@@ -214,6 +215,7 @@ func (r *RegionInfo) RemoveFoods(foods []*Food) {
 	for _, f := range foods {
 		foodPoint := Point{X: f.X, Y: f.Y} //orb.Point{x, y}
 		delete(r.FoodTree, foodPoint) // .Add(foodPoint)
+		log.Println("Bkup removing", foodPoint)
 	}
 }
 
@@ -254,20 +256,6 @@ func (r *RegionInfo) WasEaten(blob *Blob) (bool, *Blob) {
 			return false, currBlob
 		}
 	}
-	// for _, playerSeen := range r.PlayersIn {
-	// 	if playerSeen.Blob.Ip == blob.Ip {
-	// 		continue
-	// 	}
-
-	// 	currBlob := playerSeen.GetBlob()
-	// 	currBlobRadius := player.GetRadiusFromMass(currBlob.Mass)
-
-	// 	centerDistance := blobDistance(blob.X, blob.Y, currBlob.X, currBlob.Y)
-
-	// 	if currBlobRadius > (centerDistance + blobRadius + Conf.EAT_RADIUS_DELTA) {
-	// 		return false, currBlob
-	// 	}
-	// }
 
 	return true, nil
 }
