@@ -113,7 +113,7 @@ func (r *Router) Heartbeat() {
 }
 
 // Returns GRPC connection
-func (r *Router) Get(key uint32) *grpc.ClientConn {
+func (r *Router) Get(key uint32) (*grpc.ClientConn, *grpc.ClientConn) {
 	// return grpc connection of head of chain
 	hasher := fnv.New32a()
 	b := make([]byte, 4)
@@ -122,9 +122,11 @@ func (r *Router) Get(key uint32) *grpc.ClientConn {
 	hash := uint32(hasher.Sum32())
 
 	primaryHash := r.Successor(hash)
+	bkupHash := r.Successor(primaryHash + 1)
+	
 	r.lock.Lock()
 	defer r.lock.Unlock()
-	return r.conns[r.haship[primaryHash]]
+	return r.conns[r.haship[primaryHash]], r.conns[r.haship[bkupHash]]
 }
 
 func (r *Router) GetPlayerConn(addr string) *grpc.ClientConn {

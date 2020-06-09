@@ -36,6 +36,29 @@ func (ph *PlayerHandler) Init(ctx context.Context, request *InitRequest) (*InitR
 	return &response, nil
 }
 
+func doClientUpdate(regionId uint32, c chan *UpdateRegionResponse, blob *Blob, r *router.Router) {
+	// use router to get the grpc clientconn,
+	primary, backup := r.Get(regionId)
+	// create client stub from clientconn
+	regionClient := NewRegionClient(primary)
+	clientUpdate := UpdateRegionRequest{Blob: blob, Id: regionId}
+	response, err := regionClient.ClientUpdate(context.Background(), &clientUpdate)
+	// log.Println(err)
+	if err != nil {
+		if primary != backup {
+			regionClient = NewRegionClient(backup)
+			response, err = regionClient.ClientUpdate(context.Background(), &clientUpdate)
+			if err != nil {
+				log.Fatalln(regionId, "Failed to get response from both prim and bkup!")
+			} 
+		} else {
+			log.Fatalln(regionId, "only has one associated node and is down!")
+		}
+	} 
+	// call method on goroutine
+	c <- response
+}
+
 // Search function responsible to get the Country information
 func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveResponse, error) {
 	// for now just echo response with increment on position
@@ -80,26 +103,11 @@ func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveR
 	resChan := make(chan *UpdateRegionResponse, len(regions))
 	blob := ph.Player.GetBlob()
 
-	regionCall := func(regionId uint32, c chan *UpdateRegionResponse, blob *Blob) {
-		// use router to get the grpc clientconn,
-		conn := ph.Router.Get(regionId)
-		// create client stub from clientconn
-		regionClient := NewRegionClient(conn)
-		clientUpdate := UpdateRegionRequest{Blob: blob, Id: regionId}
-		r, err := regionClient.ClientUpdate(context.Background(), &clientUpdate)
-		// log.Println(err)
-		if err != nil {
-			log.Println("client updates big no no: ", err)
-		}
-		// call method on goroutine
-		c <- r
-	}
-
 	newRegions := make(map[uint32]bool)
 
 	for _, regionId := range regions {
 		// log.Println("Adding ", regionId)
-		go regionCall(regionId, resChan, blob)
+		go doClientUpdate(regionId, resChan, blob, ph.Router)
 		delete(ph.PrevRegions, regionId)
 		newRegions[regionId] = true
 	}
@@ -109,7 +117,7 @@ func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveR
 	evictChan := make(chan *UpdateRegionResponse, len(ph.PrevRegions))
 	for erid, _ := range ph.PrevRegions {
 		// log.Println("Evicting ", erid)
-		go regionCall(erid, evictChan, evictBlob)
+		go doClientUpdate(erid, evictChan, evictBlob, ph.Router)
 	}
 	ph.PrevRegions = newRegions
 
@@ -123,7 +131,7 @@ func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveR
 			evictChan := make(chan *UpdateRegionResponse, len(ph.PrevRegions))
 			for erid, _ := range ph.PrevRegions {
 				// log.Println("removing from ", erid)
-				go regionCall(erid, evictChan, evictBlob)
+				go doClientUpdate(erid, evictChan, evictBlob, ph.Router)
 			}
 			ph.PrevRegions = make(map[uint32]bool)
 			
@@ -145,6 +153,30 @@ func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveR
 	}
 
 	return &response, nil
+}
+
+func doRegionUpdate(regionId uint32, c chan *GetRegionResponse, r *router.Router) {
+	// use router to get the grpc clientconn,
+	primary, backup := r.Get(regionId)
+	// create client stub from clientconn
+	regionClient := NewRegionClient(primary)
+	getRegionRequest := IdRegionRequest{Id: regionId}
+	response, err := regionClient.GetRegion(context.Background(), &getRegionRequest)
+	
+	if err != nil {
+		if primary != backup {
+			regionClient = NewRegionClient(backup)
+			response, err = regionClient.GetRegion(context.Background(), &getRegionRequest)
+			if err != nil {
+				log.Fatalln(regionId, "Failed to get response from both prim and bkup!")
+			} 
+		} else {
+			log.Fatalln(regionId, "only has one associated node and is down!")
+		}
+	} 
+
+	// call method on goroutine
+	c <- response
 }
 
 func (ph *PlayerHandler) Region(ctx context.Context, request *RegionRequest) (*RegionResponse, error) {
@@ -170,20 +202,9 @@ func (ph *PlayerHandler) Region(ctx context.Context, request *RegionRequest) (*R
 	ph.Mux.Unlock()
 
 	resChan := make(chan *GetRegionResponse, len(regions))
-	regionCall := func(regionId uint32, c chan *GetRegionResponse) {
-		// use router to get the grpc clientconn,
-		conn := ph.Router.Get(regionId)
-		// create client stub from clientconn
-		regionClient := NewRegionClient(conn)
-		getRegionRequest := IdRegionRequest{Id: regionId}
-		response, _ := regionClient.GetRegion(context.Background(), &getRegionRequest)
-
-		// call method on goroutine
-		c <- response
-	}
 
 	for _, regionId := range regions {
-		go regionCall(regionId, resChan)
+		doRegionUpdate(regionId, resChan, ph.Router)
 	}
 
 	for _= range regions {
