@@ -16,7 +16,7 @@
   "POISON_PROB": 1000,
   "ZOOM": 100,
 
-  "VER_FILE": "~/agarioVer",
+  "VER_FILE": "agarioVer",
 
   "PLAYER_PORT": "3000",
   "REGION_PORT": "3001",

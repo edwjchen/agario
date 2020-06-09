@@ -38,7 +38,8 @@ message UpdateRegionResponse {
 }
 
 message FoodRequest {
-  repeated common.Food foods = 1;
+  uint32 id = 1;
+  repeated common.Food foods = 2;
 }
 
 

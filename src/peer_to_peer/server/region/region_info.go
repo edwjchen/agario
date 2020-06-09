@@ -4,8 +4,11 @@ import (
 	"log"
 	"math"
 	"math/rand"
+	"golang.org/x/net/context"
 	. "peer_to_peer/common"
+	"peer_to_peer/server/region_pb"
 	"peer_to_peer/server/player"
+	"peer_to_peer/server/router"
 	"sync"
 	"time"
 )
@@ -20,6 +23,7 @@ type RegionInfo struct {
 	// PlayersIn     map[string]*player.PlayerInfo
 	PlayersSeen map[string]*player.PlayerInfo
 	foodMux     sync.Mutex
+	Router      *router.Router
 	// PlayerInMux   sync.Mutex
 	PlayerSeenMux sync.Mutex
 	x             uint16
@@ -32,8 +36,8 @@ type RegionInfo struct {
 	Quit          chan bool
 }
 
-func (r *RegionInfo) InitRegion(x, y uint32) {
-	log.Println("initing region for x:", x, " y:", y)
+func (r *RegionInfo) InitRegion(x, y uint32, router *router.Router) {
+
 	r.foodMux.Lock()
 	// r.PlayerInMux.Lock()
 	r.PlayerSeenMux.Lock()
@@ -46,6 +50,7 @@ func (r *RegionInfo) InitRegion(x, y uint32) {
 	r.ymin = float64(y * Conf.REGION_MAP_HEIGHT)
 	r.ymax = float64((y + 1) * Conf.REGION_MAP_HEIGHT)
 	r.FoodTree = make(map[Point]bool)
+	r.Router = router
 	r.foodMux.Unlock()
 	// r.PlayerInMux.Unlock()
 	r.PlayerSeenMux.Unlock()
@@ -112,6 +117,7 @@ func (r *RegionInfo) spawnFood() {
 	}
 
 	spawnRandNum := rand.Intn(int(Conf.MAX_FOOD_NUM))
+	newFoods := []*Food{}
 
 	for i := 0; i < spawnRandNum; i++ {
 		x := float64(rand.Intn(int(Conf.REGION_MAP_WIDTH))) + r.xmin
@@ -120,7 +126,18 @@ func (r *RegionInfo) spawnFood() {
 		foodPoint := Point{X: x, Y: y} //orb.Point{x, y}
 
 		r.FoodTree[foodPoint] = true // .Add(foodPoint)
+		newFoods = append(newFoods, &Food{X: x, Y: y})
+
 	}
+	if r.Router.Successor(r.Router.Hash) != r.Router.Hash {
+		conn := r.Router.GetSuccessor()
+		regionClient := region_pb.NewRegionClient(conn)
+		_, err := regionClient.AddFoods(context.Background(), &region_pb.FoodRequest{Id: getRegionID(r.x, r.y), Foods: newFoods})
+		if err != nil {
+			log.Println("AddFood big no no: ", err)
+		}
+	}
+
 }
 
 func (r *RegionInfo) blobCacheClear() {
@@ -145,7 +162,7 @@ func (r *RegionInfo) removeFood(food Point) {
 	// r.PlayerInMux.Lock()
 	// r.PlayerSeenMux.Lock()
 	delete(r.FoodTree, food)
-	log.Println("Removing", food)
+	// log.Println("Removing", food)
 	// if len(r.PlayersIn) == 0 && len(r.PlayersSeen) == 0 {
 	// 	log.Printf("Eating with no player exist")
 	// }
@@ -162,15 +179,42 @@ func (r *RegionInfo) GetNumFoodsEaten(blob *Blob) int32 {
 	defer r.foodMux.Unlock()
 	radius := player.GetRadiusFromMass(blob.Mass)
 
-	numEaten := 0
+	foodEaten := []*Food{}
 	for food, _ := range r.FoodTree {
 		if blobDistance(blob.X, blob.Y, food.X, food.Y) <= radius {
 			r.removeFood(food)
-			numEaten++
+			foodEaten = append(foodEaten, &Food{X:food.X, Y:food.Y})
 		}
 	}
 
-	return int32(numEaten)
+	if r.Router.Successor(r.Router.Hash) != r.Router.Hash {
+		conn := r.Router.GetSuccessor()
+		regionClient := region_pb.NewRegionClient(conn)
+		_, err := regionClient.RemoveFoods(context.Background(), &region_pb.FoodRequest{Id: getRegionID(r.x, r.y), Foods: foodEaten})
+		if err != nil {
+			log.Println("RemoveFoods big no no: ", err)
+		}
+	}
+
+	return int32(len(foodEaten))
+}
+
+func (r *RegionInfo) AddFoods(foods []*Food) {
+	r.foodMux.Lock()
+	defer r.foodMux.Unlock()
+	for _, f := range foods {
+		foodPoint := Point{X: f.X, Y: f.Y} //orb.Point{x, y}
+		r.FoodTree[foodPoint] = true // .Add(foodPoint)
+	}
+}
+
+func (r *RegionInfo) RemoveFoods(foods []*Food) {
+	r.foodMux.Lock()
+	defer r.foodMux.Unlock()
+	for _, f := range foods {
+		foodPoint := Point{X: f.X, Y: f.Y} //orb.Point{x, y}
+		delete(r.FoodTree, foodPoint) // .Add(foodPoint)
+	}
 }
 
 // Precondition: calling function already has lock on r.foodMux

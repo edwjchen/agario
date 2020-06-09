@@ -26,7 +26,7 @@ type RegionHandler struct {
 func (rh *RegionHandler) Init() {
 	// rh.Router.Heartbeat()
 	go rh.Router.Heartbeat()
-	time.Sleep(time.Second * 2)
+	time.Sleep(time.Second * 3)
 	rh.mux.Lock()
 
 	rh.Regions = make(map[uint32]*RegionInfo)
@@ -35,18 +35,28 @@ func (rh *RegionHandler) Init() {
 	for i = 0; i < Conf.NREGION_WIDTH; i++ {
 		for j = 0; j < Conf.NREGION_HEIGHT; j++ {
 			regionID := getRegionID(uint16(i), uint16(j))
-
+			
 			hasher := fnv.New32a()
 			b := make([]byte, 4)
 			binary.LittleEndian.PutUint32(b, regionID)
 			hasher.Write(b)
 			h := uint32(hasher.Sum32())
+			regionSuccessorHash := rh.Router.Successor(h)
 
-			if rh.Router.Successor(h) == rh.Router.Hash {
+			if regionSuccessorHash == rh.Router.Hash {
+				log.Println("MY REGION!")
 				newRegion := &RegionInfo{}
-				newRegion.InitRegion(i, j)
+				newRegion.InitRegion(i, j, rh.Router)
 				go newRegion.MaintainRegion()
 				rh.Regions[regionID] = newRegion
+			} else if rh.Router.Successor(regionSuccessorHash+1) == rh.Router.Hash {
+				log.Println("I'M BACKUP!")
+				newRegion := &RegionInfo{}
+				newRegion.InitRegion(i, j, rh.Router)
+				// go newRegion.MaintainRegion()
+				rh.Regions[regionID] = newRegion
+			} else {
+				log.Println("NOT MY THING!")
 			}
 		}
 	}
@@ -237,11 +247,27 @@ func (rh *RegionHandler) ClientUpdate(ctx context.Context, request *UpdateRegion
 
 // below two methods are for replication
 func (rh *RegionHandler) AddFoods(ctx context.Context, request *FoodRequest) (*EmptyResponse, error) {
+	
+	regionId := request.GetId()
+	rh.mux.RLock()
+	region, _ := rh.Regions[regionId]
+	rh.mux.RUnlock()
+
+	region.AddFoods(request.GetFoods())
+
 	response := EmptyResponse{}
 	return &response, nil
 }
 
 func (rh *RegionHandler) RemoveFoods(ctx context.Context, request *FoodRequest) (*EmptyResponse, error) {
+	
+	regionId := request.GetId()
+	rh.mux.RLock()
+	region, _ := rh.Regions[regionId]
+	rh.mux.RUnlock()
+
+	region.RemoveFoods(request.GetFoods())
+
 	response := EmptyResponse{}
 	return &response, nil
 }

@@ -156,7 +156,7 @@ func (r *Router) InvalidatePlayerConn(addr string) {
 // Returns GRPC connection
 func (r *Router) GetSuccessor() *grpc.ClientConn {
 	// get whatever is after us in aliveBacks
-	successorHash := r.Successor(r.Hash)
+	successorHash := r.Successor(r.Hash+1)
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	return r.conns[r.haship[successorHash]]

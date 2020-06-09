@@ -4,10 +4,10 @@
 // 	protoc        v3.12.2
 // source: region.proto
 
-package region_pb
+package region
 
 import (
-	common "peer_to_peer/common"
+	common "common"
 	context "context"
 	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
