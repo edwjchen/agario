@@ -19,8 +19,8 @@ import (
 
 // const SCREEN_WIDTH = 10000
 // const SCREEN_HEIGHT = 10000
-const SCREEN_WIDTH = 800
-const SCREEN_HEIGHT = 500
+const SCREEN_WIDTH = info.SCREEN_WIDTH
+const SCREEN_HEIGHT = info.SCREEN_HEIGHT
 const STARTING_MASS = info.STARTING_MASS
 
 var foodInfo info.FoodInfo
@@ -112,8 +112,11 @@ func (Server) Region(ctx context.Context, request *blob.RegionRequest) (*blob.Re
 	// y := request.GetY()
 	// log.Println("pos: ", x, y)
 
-	players := blobsInfo.GetBlobs()
-	foods := foodInfo.GetFoods()
+	blobId := request.GetId()
+
+	players := blobsInfo.GetBlobs(blobId, &foodInfo)
+	player := blobsInfo.GetPlayer(blobId)
+	foods := foodInfo.GetFoods(player)
 	response := blob.RegionResponse{
 		Players: players,
 		Foods:   foods,
@@ -125,6 +128,13 @@ func (Server) Region(ctx context.Context, request *blob.RegionRequest) (*blob.Re
 func spawnFood() {
 	ticker := time.NewTicker(1 * time.Second)
 	for _ = range ticker.C {
-		foodInfo.SpawnFood()
+		norm_map_width := info.MAP_WIDTH / info.REGION_MAP_WIDTH
+		norm_map_height := info.MAP_HEIGHT / info.REGION_MAP_HEIGHT
+		for x := 0; x < norm_map_width; x++ {
+			for y := 0; y < norm_map_height; y++ {
+				point := info.Point{X: float64(x), Y: float64(y)}
+				foodInfo.SpawnFood(point)
+			}
+		}
 	}
 }

@@ -39,8 +39,11 @@ class GRPCWrapper:
         initResponse = self.stub.Init(initRequest)
         return initResponse
 
-    def region(self):
+    def region(self, name, x, y):
         regionRequest = blob_pb2.RegionRequest()
+        regionRequest.id = name
+        regionRequest.x = x
+        regionRequest.y = y
         start = time.time()
         regionResponse = self.stub.Region(regionRequest)
         end = time.time()

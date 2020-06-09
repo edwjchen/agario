@@ -2,15 +2,10 @@ package info
 
 import (
 	"client_server/server/blob"
-	// "github.com/paulmach/orb"
-	// "github.com/paulmach/orb/quadtree"
 	"math/rand"
 	"sync"
-	"math"
 	// "log"
 )
-
-const MIN_FOOD_NUM = 50
 
 type Point struct {
 	X float64
@@ -34,6 +29,8 @@ func (f *FoodInfo) InitFood() {
 	// f.foodMap = make(map[blob.Food]*blob.Food)
 	//f.foodTree = quadtree.New(orb.Bound{Min: orb.Point{0, 0}, Max: orb.Point{MAP_WIDTH, MAP_HEIGHT}})
 	
+	f.regionMap = make(map[Point]map[Point]bool)
+
 	norm_map_width := MAP_WIDTH / REGION_MAP_WIDTH
 	norm_map_height := MAP_HEIGHT / REGION_MAP_HEIGHT
 	for x := 0; x < norm_map_width; x++ {
@@ -41,14 +38,17 @@ func (f *FoodInfo) InitFood() {
 			foodMap := make(map[Point]bool)
 			point := Point{X: float64(x), Y: float64(y)}
 			f.regionMap[point] = foodMap
-
+			f.mux.Unlock()
 			f.SpawnFood(point)
+			f.mux.Lock()
 		}
 	}
 }
 
 // Doesn't spawn food if not needed
 func (f *FoodInfo) SpawnFood(point Point) {
+	f.mux.Lock()
+	defer f.mux.Unlock()
 	// bound := orb.Bound{Min: orb.Point{0, 0}, Max: orb.Point{MAP_WIDTH, MAP_HEIGHT}}
 	// foods := f.foodTree.InBound([]orb.Pointer{}, bound)
 
@@ -82,8 +82,8 @@ func (f *FoodInfo) SpawnFood(point Point) {
 	spawnRandNum := rand.Intn(int(MAX_FOOD_NUM))
 
 	for i := 0; i < spawnRandNum; i++ {
-		x := float64(rand.Intn(int(REGION_MAP_WIDTH))) + point.X
-		y := float64(rand.Intn(int(REGION_MAP_HEIGHT))) + point.Y
+		x := float64(rand.Intn(int(REGION_MAP_WIDTH))) + point.X * REGION_MAP_WIDTH
+		y := float64(rand.Intn(int(REGION_MAP_HEIGHT))) + point.Y * REGION_MAP_HEIGHT
 
 		foodPoint := Point{X: float64(x), Y: float64(y)}
 
@@ -134,63 +134,17 @@ func (f *FoodInfo) GetFoods(player *blob.Player) []*blob.Food {
 	f.mux.Lock()
 	defer f.mux.Unlock()
 
-	bound := orb.Bound{Min: orb.Point{0, 0}, Max: orb.Point{MAP_WIDTH, MAP_HEIGHT}}
-	foods := f.foodTree.InBound([]orb.Pointer{}, bound)
+	regionPoints := GetAOI(player)
+	foodSlice := make([]*blob.Food, 0)
 
-	foodSlice := make([]*blob.Food, len(foods))
-	for idx, food := range foods {
-		point := food.Point()
-		foodSlice[idx] = &blob.Food{X: point.X(), Y: point.Y()}
+	for _, regionPoint := range regionPoints {
+		foodMap := f.regionMap[regionPoint]
+		for foodPoint, _ := range foodMap {
+			food := &blob.Food{X: foodPoint.X, Y: foodPoint.Y}
+			foodSlice = append(foodSlice, food)
+		}
 	}
 
 	return foodSlice
 }
 
-
-func GetRadiusFromMass(mass int32) float64 {
-	rad := math.Sqrt(float64(mass)) * float64(MASS_MULTIPLIER)
-	return rad
-}
-
-// Returns a list of region ids
-func GetAOI(player *blob.Player) []Point {
-	// p.mux.Lock()
-	// defer p.mux.Unlock()
-	NREGION_WIDTH := MAP_WIDTH / REGION_MAP_WIDTH
-	NREGION_HEIGHT := MAP_HEIGHT / REGION_MAP_HEIGHT
- 
-	diameter := GetRadiusFromMass(player.Mass) * 2.0
-	zoom_factor := ZOOM/diameter + 0.3
-	top_left_x := player.X - float64(SCREEN_WIDTH)/zoom_factor/2
-	top_left_y := player.Y - float64(SCREEN_HEIGHT)/zoom_factor/2
-	bot_right_x := player.X + float64(SCREEN_WIDTH)/zoom_factor/2
-	bot_right_y := player.Y + float64(SCREEN_HEIGHT)/zoom_factor/2
-	//figure out which of the regions are in AOI
-	start_region_x := float64(max(0, int32(math.Floor(top_left_x/float64(REGION_MAP_WIDTH)-1))))
-	start_region_y := float64(max(0, int32(math.Floor(top_left_y/float64(REGION_MAP_HEIGHT)-1))))
-	end_region_x := float64(min(int32(math.Ceil(bot_right_x/float64(REGION_MAP_WIDTH)+1)), int32(NREGION_WIDTH-1)))
-	end_region_y := float64(min(int32(math.Ceil(bot_right_y/float64(REGION_MAP_HEIGHT)+1)), int32(NREGION_HEIGHT-1)))
-
-	regionPoints := make([]Point, 0)
-
-	for x := start_region_x; x <= end_region_x; x++ {
-		for y := start_region_y; y <= end_region_y; y++ {
-			regionPoints = append(regionPoints, Point{X: x, Y: y})
-		}
-	}
-	return regionPoints
-}
-
-func min(a, b int32) int32 {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func max(a, b int32) int32 {
-	if a > b {
-		return a
-	}
-	return b
-}

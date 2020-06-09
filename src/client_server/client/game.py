@@ -29,6 +29,7 @@ FOOD_MASS = 7
 ZOOM_CONSTANT = 100
 MAP_LENGTH = 10000
 EAT_CONSTANT = 5
+MASS_MULTIPLIER = 3
 
 
 t_surface = pygame.Surface((95,25),pygame.SRCALPHA) #transparent rect for score
@@ -58,6 +59,9 @@ def getDistance(pos1,pos2):
     diffY = math.fabs(py-p2y)
 
     return ((diffX**2)+(diffY**2))**(0.5)
+
+def get_diameter(mass):
+    return (mass ** 0.5) * MASS_MULTIPLIER * 2
 
 class Camera:
     def __init__(self):
@@ -93,13 +97,13 @@ class Blob:
 
     def update(self):
         if BOT:
-            closest_food = self.findClosest(self.foods, False)
-            closest_player = self.findClosest(self.players, True)
+            closest_food, _ = self.findClosest(self.foods, False)
+            closest_player, min_dist = self.findClosest(self.players, True)
 
             if not closest_food and not closest_player:
                 #move randomly
                 self.randomWalk()
-            elif closest_player:
+            elif closest_player and min_dist < self.mass * 2:
                 #move towards or away from player
                 val = self.canEatPlayer(closest_player)
                 if val == 1:
@@ -128,7 +132,7 @@ class Blob:
 
     def findClosest(self, obj_list, is_player_list):
         if not obj_list:
-            return None
+            return None, None
         else:
             min_distance = float('inf')
             my_pos = (self.x, self.y)
@@ -143,7 +147,7 @@ class Blob:
                     elif not is_player_list:
                         min_distance = dist
                         ret = obj
-            return ret
+            return ret, min_distance
 
     def randomWalk(self):
         if self.move_count < 1000:
@@ -153,7 +157,7 @@ class Blob:
     def canEatPlayer(self, enemy):
         if self.mass > enemy.mass + EAT_CONSTANT + 100:
             return 1
-        elif self.mass >= enemy.mass:
+        elif self.mass >= enemy.mass :
             return 0
         else:
             return -1
@@ -174,7 +178,7 @@ class Blob:
         self.y = moveResponse.y
 
     def draw(self,cam):
-        regionResponse = grpc_wrapper.region()
+        regionResponse = grpc_wrapper.region(self.name, self.x, self.y)
 
         players = regionResponse.players
         self.players = players
@@ -189,8 +193,9 @@ class Blob:
             zoom = cam.zoom
             x = cam.x
             y = cam.y
-            pygame.draw.circle(self.surface,(col[0]-int(col[0]/3),int(col[1]-col[1]/3),int(col[2]-col[2]/3)),(int(player.x*zoom+x),int(player.y*zoom+y)),int((player.mass/2+3)*zoom))
-            pygame.draw.circle(self.surface,col,(int(player.x*cam.zoom+cam.x),int(player.y*cam.zoom+cam.y)),int(player.mass/2*zoom))
+            d = get_diameter(player.mass)
+            pygame.draw.circle(self.surface,(col[0]-int(col[0]/3),int(col[1]-col[1]/3),int(col[2]-col[2]/3)),(int(player.x*zoom+x),int(player.y*zoom+y)),int((d/2+3)*zoom))
+            pygame.draw.circle(self.surface,col,(int(player.x*cam.zoom+cam.x),int(player.y*cam.zoom+cam.y)),int(d/2*zoom))
             if(len(player.id) > 0):
                 fw, fh = font.size(player.id)
                 drawText(player.id, (player.x*cam.zoom+cam.x-int(fw/2),player.y*cam.zoom+cam.y-int(fh/2)),(50,50,50))
