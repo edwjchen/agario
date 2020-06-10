@@ -1,8 +1,10 @@
 #!/bin/bash
 cd 
+sudo rm /var/lib/dpkg/lock-frontend
+sudo rm /var/lib/dpkg/lock
 
 curl -O https://bootstrap.pypa.io/get-pip.py
-sudo apt install python3-distutils
+sudo apt install python3-distutils -y
 python3 get-pip.py
 echo "export PATH=/home/ubuntu/.local/bin:$PATH" >> ~/.bashrc
 echo "export SDL_VIDEODRIVER=dummy" >> ~/.bashrc
