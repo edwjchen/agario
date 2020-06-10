@@ -32,8 +32,8 @@ EAT_CONSTANT = 5
 MASS_MULTIPLIER = 3
 
 
-t_surface = pygame.Surface((95,25),pygame.SRCALPHA) #transparent rect for score
-t_lb_surface = pygame.Surface((155,278),pygame.SRCALPHA) #transparent rect for leaderboard
+t_surface = pygame.Surface((95,25)) #transparent rect for score
+t_lb_surface = pygame.Surface((155,278)) #transparent rect for leaderboard
 t_surface.fill((50,50,50,80))
 t_lb_surface.fill((50,50,50,80))
 
