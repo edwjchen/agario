@@ -90,14 +90,14 @@ func (p *PlayerInfo) UpdatePos(dx float64, dy float64) (float64, float64) {
 	updateBlob.Y += dy
 
 	//constrain movement for now
-	if updateBlob.X > float64(Conf.MAP_WIDTH) {
-		updateBlob.X = float64(Conf.MAP_WIDTH)
+	if updateBlob.X > float64(Conf.MAP_WIDTH-1) {
+		updateBlob.X = float64(Conf.MAP_WIDTH-1)
 	} else if updateBlob.X < 0 {
 		updateBlob.X = 0
 	}
 
-	if updateBlob.Y > float64(Conf.MAP_HEIGHT) {
-		updateBlob.Y = float64(Conf.MAP_HEIGHT)
+	if updateBlob.Y > float64(Conf.MAP_HEIGHT-1) {
+		updateBlob.Y = float64(Conf.MAP_HEIGHT-1)
 	} else if updateBlob.Y < 0 {
 		updateBlob.Y = 0
 	}
