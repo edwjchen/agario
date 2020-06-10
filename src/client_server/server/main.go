@@ -117,6 +117,11 @@ func (Server) Region(ctx context.Context, request *blob.RegionRequest) (*blob.Re
 	players := blobsInfo.GetBlobs(blobId, &foodInfo)
 	player := blobsInfo.GetPlayer(blobId)
 	foods := foodInfo.GetFoods(player)
+
+	if !blobsInfo.IsBlobAlive(blobId) {
+		players = append(players, player)
+	}
+
 	response := blob.RegionResponse{
 		Players: players,
 		Foods:   foods,

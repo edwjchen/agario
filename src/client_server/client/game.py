@@ -28,6 +28,8 @@ surface = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 FOOD_MASS = 7
 ZOOM_CONSTANT = 100
 MAP_LENGTH = 10000
+AGGRO_MULTIPLIER = 5
+SAFETY_RANGE = 50
 EAT_CONSTANT = 5
 MASS_MULTIPLIER = 3
 
@@ -85,6 +87,7 @@ class Blob:
         self.surface = surface
         self.color = PLAYER_COLORS[random.randint(0,len(PLAYER_COLORS)-1)]
         self.name = initResponse.id
+        self.alive = True
         self.pieces = list()
         piece = Piece(surface,(self.x,self.y),self.color,self.mass,self.name)
 
@@ -103,23 +106,21 @@ class Blob:
             if not closest_food and not closest_player:
                 #move randomly
                 self.randomWalk()
-            elif closest_player and min_dist < self.mass * 2:
+            elif closest_player:
                 #move towards or away from player
                 val = self.canEatPlayer(closest_player)
-                if val == 1:
+                if val == 1 and min_dist < self.mass * AGGRO_MULTIPLIER:
                     #move towards
                     self.next_x = closest_player.x - self.x
                     self.next_y = closest_player.y - self.y
-
-                elif val == 0:
-                    #move towards food
-                    self.next_x = closest_food.x - self.x
-                    self.next_y = closest_food.y - self.y
-                
-                else:
+                elif val == -1 and min_dist < SAFETY_RANGE + get_diameter(closest_player.mass)/2:
                     #move away
                     self.next_x = self.x - closest_player.x 
                     self.next_y = self.y - closest_player.y
+                else:
+                    #move towards food
+                    self.next_x = closest_food.x - self.x
+                    self.next_y = closest_food.y - self.y
 
             else:
                 #move towards food
@@ -156,11 +157,11 @@ class Blob:
 
     def canEatPlayer(self, enemy):
         if self.mass > enemy.mass + EAT_CONSTANT + 100:
-            return 1
+            return 1 #can eat
         elif self.mass >= enemy.mass :
-            return 0
+            return 0 #can't eat or be eaten
         else:
-            return -1
+            return -1 #can be eaten
 
     def move(self):
         self.move_count += 1
@@ -189,16 +190,19 @@ class Blob:
                 self.x = player.x
                 self.y = player.y
                 self.mass = player.mass
+                self.alive = player.alive
+
             col = self.color
-            zoom = cam.zoom
-            x = cam.x
-            y = cam.y
-            d = get_diameter(player.mass)
-            pygame.draw.circle(self.surface,(col[0]-int(col[0]/3),int(col[1]-col[1]/3),int(col[2]-col[2]/3)),(int(player.x*zoom+x),int(player.y*zoom+y)),int((d/2+3)*zoom))
-            pygame.draw.circle(self.surface,col,(int(player.x*cam.zoom+cam.x),int(player.y*cam.zoom+cam.y)),int(d/2*zoom))
-            if(len(player.id) > 0):
-                fw, fh = font.size(player.id)
-                drawText(player.id, (player.x*cam.zoom+cam.x-int(fw/2),player.y*cam.zoom+cam.y-int(fh/2)),(50,50,50))
+            if player.alive:
+                zoom = cam.zoom
+                x = cam.x
+                y = cam.y
+                d = get_diameter(player.mass)
+                pygame.draw.circle(self.surface,(col[0]-int(col[0]/3),int(col[1]-col[1]/3),int(col[2]-col[2]/3)),(int(player.x*zoom+x),int(player.y*zoom+y)),int((d/2+3)*zoom))
+                pygame.draw.circle(self.surface,col,(int(player.x*cam.zoom+cam.x),int(player.y*cam.zoom+cam.y)),int(d/2*zoom))
+                if(len(player.id) > 0):
+                    fw, fh = font.size(player.id)
+                    drawText(player.id, (player.x*cam.zoom+cam.x-int(fw/2),player.y*cam.zoom+cam.y-int(fh/2)),(50,50,50))
 
         foods = regionResponse.foods
         self.foods = foods
@@ -262,7 +266,7 @@ def draw_HUD():
 
 
 camera = Camera()
-blob = Blob(surface,"Viliami")
+blob = Blob(surface,"")
 # spawn_foods(2000)
 
 while(True):
@@ -282,6 +286,11 @@ while(True):
     # for c in food_list:
     #     c.draw(camera)
     blob.draw(camera)
+    if not blob.alive:
+        print("i am ded")
+        grpc_wrapper.respawn()
+        blob = Blob(surface,"")
+        continue
 
     draw_HUD()
     draw_leaderboard(['testing'])

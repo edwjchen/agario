@@ -11,8 +11,8 @@ import (
 
 const SCREEN_WIDTH = 800
 const SCREEN_HEIGHT = 500
-const MAP_WIDTH = 1000
-const MAP_HEIGHT = 1000
+const MAP_WIDTH = 1500
+const MAP_HEIGHT = 1500
 const REGION_MAP_WIDTH = 500
 const REGION_MAP_HEIGHT = 500
 const MAX_FOOD_NUM = 30
@@ -39,8 +39,9 @@ func (b *BlobsInfo) InitBlobs() {
 	b.blobsMap = make(map[string]*blob.Player)
 
 	b.regionMap = make(map[Point]map[string]*blob.Player)
-	norm_map_width := MAP_WIDTH / REGION_MAP_WIDTH
-	norm_map_height := MAP_HEIGHT / REGION_MAP_HEIGHT
+	norm_map_width := MAP_WIDTH / REGION_MAP_WIDTH 
+	norm_map_height := MAP_HEIGHT / REGION_MAP_HEIGHT 
+
 	for x := 0; x < norm_map_width; x++ {
 		for y := 0; y < norm_map_height; y++ {
 			playerMap := make(map[string]*blob.Player)
@@ -98,9 +99,6 @@ func (b *BlobsInfo) UpdatePos(name string, dx float64, dy float64) (float64, flo
 	b.blobsMap[name] = currBlob
 
 	newCurrBlobRegionPoint := Point{X: float64(int(currBlob.X / REGION_MAP_WIDTH)), Y: float64(int(currBlob.Y / REGION_MAP_HEIGHT))}
-	
-	log.Println(currBlob.X, currBlob.Y)
-	log.Println(newCurrBlobRegionPoint)
 	b.regionMap[newCurrBlobRegionPoint][currBlobId] = currBlob
 
 	return currBlob.X, currBlob.Y
@@ -118,9 +116,7 @@ func (b *BlobsInfo) GetBlobs(blobId string, foodInfo *FoodInfo) []*blob.Player {
 	for _, regionPoint := range regionPoints {
 		blobMap := b.regionMap[regionPoint]
 		for _, blob := range blobMap {
-			if blob.Alive {
-				retBlobs = append(retBlobs, blob)
-			}
+			retBlobs = append(retBlobs, blob)
 		}
 	}
 
@@ -176,7 +172,8 @@ func (b *BlobsInfo) EatBlobs(blobId string) {
 
 			if currBlobRadius > (centerDistance + blobRadius + EAT_RADIUS_DELTA) {
 				currBlob.Mass += (blob.Mass) / 2
-				b.removeBlob(blob.Id)
+				b.blobsMap[blob.Id].Alive = false
+				delete(blobMap, blob.Id)
 			}
 		}
 	}
@@ -190,13 +187,14 @@ func (b *BlobsInfo) IsBlobAlive(id string) bool {
 }
 
 func (b *BlobsInfo) removeBlob(id string) { 
+	log.Println("remove blob: ", id)
 	//get current pos
 	//get region pos
 	//remove from regionMap
 	currBlob := b.blobsMap[id]
+	b.blobsMap[id].Alive = false
 	regionPoint := Point{X: float64(int(currBlob.X / MAP_WIDTH)), Y: float64(int(currBlob.Y / MAP_HEIGHT))}
 	delete(b.regionMap[regionPoint], id)
-	b.blobsMap[id].Alive = false
 }
 
 func blobDistance(x1, y1, x2, y2 float64) float64 {
