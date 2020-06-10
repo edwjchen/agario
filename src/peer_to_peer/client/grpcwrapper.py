@@ -29,7 +29,7 @@ class GRPCWrapper:
     
     def respawn(self):
         self.channel.close()
-        time.sleep(10)
+        time.sleep(5)
         self.channel = grpc.insecure_channel(self.ip)
         self.stub = player_pb2_grpc.PlayerStub(self.channel)
 
