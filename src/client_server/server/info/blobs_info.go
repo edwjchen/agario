@@ -83,14 +83,14 @@ func (b *BlobsInfo) UpdatePos(name string, dx float64, dy float64) (float64, flo
 	currBlob.Y += dy
 
 	//constrain movement for now
-	if currBlob.X > MAP_WIDTH {
-		currBlob.X = MAP_WIDTH
+	if currBlob.X > MAP_WIDTH-1 {
+		currBlob.X = MAP_WIDTH-1
 	} else if currBlob.X < 0 {
 		currBlob.X = 0
 	}
 
-	if currBlob.Y > MAP_HEIGHT {
-		currBlob.Y = MAP_HEIGHT
+	if currBlob.Y > MAP_HEIGHT-1 {
+		currBlob.Y = MAP_HEIGHT-1
 	} else if currBlob.Y < 0 {
 		currBlob.Y = 0
 	}
