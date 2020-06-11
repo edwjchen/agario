@@ -3,6 +3,7 @@ import grpc
 import player_pb2
 import player_pb2_grpc
 from grpcwrapper import GRPCWrapper
+import netifaces as ni
 
 import pygame,random,math
 import asyncio
@@ -10,9 +11,9 @@ import time
 import signal
 import sys
 
-IP = sys.argv[1]
-RUN = sys.argv[2]
+RUN = sys.argv[1]
 # BOT = bool(sys.argv[2])
+IP = ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
 
 BOT = True
 print("Connecting on ip:", IP)
@@ -121,7 +122,7 @@ class Blob:
                     self.next_y = closest_player.y - self.y
                 elif val == -1 and min_dist < SAFETY_RANGE + get_diameter(closest_player.mass)/2:
                     #move away
-                    self.next_x = self.x - closest_player.x 
+                    self.next_x = self.x - closest_player.x
                     self.next_y = self.y - closest_player.y
                 else:
                     #move towards food
@@ -135,7 +136,7 @@ class Blob:
 
             self.next_x += SCREEN_WIDTH/2
             self.next_y += SCREEN_HEIGHT/2
-        self.move()
+            self.move()
 
     def findClosest(self, obj_list, is_player_list):
         if not obj_list:
@@ -148,7 +149,7 @@ class Blob:
                 obj_pos = (obj.x, obj.y)
                 dist = getDistance(my_pos, obj_pos)
                 if dist < min_distance:
-                    if is_player_list and obj.id != self.name and dist < 2000:
+                    if is_player_list and obj.name != self.name and dist < 2000:
                         min_distance = dist
                         ret = obj
                     elif not is_player_list:

@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 	"peer_to_peer/common"
+	"peer_to_peer/ip"
 	"peer_to_peer/entryserver"
 	"peer_to_peer/server/player"
 	"peer_to_peer/server/player_pb"
@@ -18,11 +19,11 @@ import (
 
 func main() {
 
-	myAddr := os.Args[1]
+	myAddr := ip.GetLocalIP()
 	basePath := "/src/peer_to_peer/common/"
 	configPath := "/src/peer_to_peer/common/config.json"
-	if len(os.Args) == 3 {
-		configPath = basePath + os.Args[2]
+	if len(os.Args) == 2 {
+		configPath = basePath + os.Args[1]
 	}
 
 	e := common.ReadConfig(os.Getenv("GOPATH") + configPath)
