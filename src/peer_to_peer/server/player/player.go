@@ -38,6 +38,7 @@ func (ph *PlayerHandler) Init(ctx context.Context, request *InitRequest) (*InitR
 
 func doClientUpdate(regionId uint32, c chan *UpdateRegionResponse, blob *Blob, r *router.Router) {
 	// use router to get the grpc clientconn,
+	//log.Println(regionId, blob, "doClientUpdate")
 	primary, backup := r.Get(regionId)
 	// create client stub from clientconn
 	regionClient := NewRegionClient(primary)
@@ -54,7 +55,17 @@ func doClientUpdate(regionId uint32, c chan *UpdateRegionResponse, blob *Blob, r
 		} else {
 			log.Fatalln(regionId, "only has one associated node and is down!")
 		}
-	} 
+	} else if !response.GetReady() {
+		if primary != backup {
+			regionClient = NewRegionClient(backup)
+			responsebk, err := regionClient.ClientUpdate(context.Background(), &clientUpdate)
+			if err == nil && responsebk.GetReady() {
+				response = responsebk
+			} 
+		}
+	}
+	//log.Println(regionId, blob, "back:", response)
+
 	// call method on goroutine
 	c <- response
 }
@@ -62,7 +73,7 @@ func doClientUpdate(regionId uint32, c chan *UpdateRegionResponse, blob *Blob, r
 // Search function responsible to get the Country information
 func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveResponse, error) {
 	// for now just echo response with increment on position
-	// log.Println("Moving!")
+	//log.Println("Moving!")
 	ph.Mux.Lock()
 	defer ph.Mux.Unlock()
 
@@ -173,24 +184,20 @@ func doRegionUpdate(regionId uint32, c chan *GetRegionResponse, r *router.Router
 		} else {
 			log.Fatalln(regionId, "only has one associated node and is down!")
 		}
-	} 
+	} else if !response.GetReady() {
+		if primary != backup {
+			regionClient = NewRegionClient(backup)
+			responsebk, err := regionClient.GetRegion(context.Background(), &getRegionRequest)
+			if err == nil && responsebk.GetReady() {
+				response = responsebk
+			} 
+		}
+	}
 
-	// call method on goroutine
 	c <- response
 }
 
 func (ph *PlayerHandler) Region(ctx context.Context, request *RegionRequest) (*RegionResponse, error) {
-	// regionId := request.GetId()
-	// conn := ph.router.Get(regionId)
-	// regionClient := region_pb.NewRegionClient(conn)
-
-	// regionRequest := &region_pb.IdRegionRequest{Id: regionId}
-	// getRegionResponse, _ := regionClient.GetRegion(context.Background(), regionRequest)
-
-	// response := region_pb.RegionResponse{
-	// 	Blobs: getRegionResponse.Blobs,
-	// 	Foods: getRegionResponse.Foods,
-	// }
 
 	//Get Info from Regions
 	//Compile Info from Regions

@@ -1,5 +1,5 @@
 {
-  "MIN_PLAYERS": 2,
+  "MIN_PLAYERS": 3,
   "MAX_PLAYERS": 10,
   "ADDR"       : "172.31.24.228:8080"
 }

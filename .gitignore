@@ -2,6 +2,9 @@ src/github.com
 src/google.golang.org
 src/golang.org
 *.pyc
+*.pem
+
+src/setup/
 
 bin/
 pkg/
