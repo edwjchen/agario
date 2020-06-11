@@ -25,6 +25,7 @@
   "REGION_SERVERS": [
     "localhost:3001",
     "localhost:4001",
-    "localhost:5001"
+    "localhost:5001",
+    "localhost:6001"
   ]
 }

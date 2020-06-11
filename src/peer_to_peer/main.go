@@ -32,7 +32,7 @@ func main() {
 	regionAddr := myAddr + ":" + common.Conf.REGION_PORT
 	playerAddr := myAddr + ":" + common.Conf.PLAYER_PORT
 
-	router := &router.Router{RegionChange: make(chan router.RegionChangeInfo)}
+	router := &router.Router{RegionChange: make(chan router.RegionChangeInfo, common.Conf.NREGION_HEIGHT * common.Conf.NREGION_WIDTH)}
 	regionGrpcServer := grpc.NewServer()
 	regionHandler := region.RegionHandler{Router: router, RegionChange: router.RegionChange}
 	region_pb.RegisterRegionServer(regionGrpcServer, &regionHandler)

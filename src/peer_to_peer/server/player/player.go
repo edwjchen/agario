@@ -38,6 +38,7 @@ func (ph *PlayerHandler) Init(ctx context.Context, request *InitRequest) (*InitR
 
 func doClientUpdate(regionId uint32, c chan *UpdateRegionResponse, blob *Blob, r *router.Router) {
 	// use router to get the grpc clientconn,
+	//log.Println(regionId, blob, "doClientUpdate")
 	primary, backup := r.Get(regionId)
 	// create client stub from clientconn
 	regionClient := NewRegionClient(primary)
@@ -63,6 +64,7 @@ func doClientUpdate(regionId uint32, c chan *UpdateRegionResponse, blob *Blob, r
 			} 
 		}
 	}
+	//log.Println(regionId, blob, "back:", response)
 
 	// call method on goroutine
 	c <- response
@@ -71,7 +73,7 @@ func doClientUpdate(regionId uint32, c chan *UpdateRegionResponse, blob *Blob, r
 // Search function responsible to get the Country information
 func (ph *PlayerHandler) Move(ctx context.Context, request *MoveRequest) (*MoveResponse, error) {
 	// for now just echo response with increment on position
-	// log.Println("Moving!")
+	//log.Println("Moving!")
 	ph.Mux.Lock()
 	defer ph.Mux.Unlock()
 

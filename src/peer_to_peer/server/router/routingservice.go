@@ -36,6 +36,7 @@ type Router struct {
 	CurrPredecessor uint32
 	CurrSuccessor   uint32
 	RegionChange    chan RegionChangeInfo
+	Ready     bool
 }
 
 type heartbeatOutput struct {
@@ -85,7 +86,7 @@ func (r *Router) Heartbeat() {
 		client := NewRegionClient(cxn)
 		_, err := client.Ping(context.Background(), &EmptyRequest{})
 		if err != nil {
-			log.Println("Failed ping", err)
+			// log.Println("Failed ping", err)
 			retChan <- heartbeatOutput{
 				ip:   ip,
 				conn: nil,
@@ -121,32 +122,42 @@ func (r *Router) Heartbeat() {
 			return r.liveBacks[i] < r.liveBacks[j]
 		})
 
-		newSuccessor := r.Successor(r.Hash)
-		newPredecessor := r.Predecessor(r.Hash)
+		if r.Ready {
+			newSuccessor := r.successor(r.Hash+1)
+			newPredecessor := r.predecessor(r.Hash)
 
-		if newSuccessor != r.CurrSuccessor {
-			// handle one node case
-			if newSuccessor == r.Hash {
-				r.RegionChange <- RegionChangeInfo{
-					Successor: true,
-					Join:      true, 
-					PrevConn:  nil,
-					CurrConn:  nil,
+			if newSuccessor != r.CurrSuccessor {
+				// handle one node case
+				if newSuccessor == r.Hash {
+					r.RegionChange <- RegionChangeInfo{
+						Successor: true,
+						Join:      true,
+						PrevConn:  nil,
+						CurrConn:  nil,
+					}
+				} else {
+					r.OnSccessorChange(r.CurrSuccessor, newSuccessor)
 				}
-			} else {
-				r.OnSccessorChange(r.CurrSuccessor, newSuccessor)
+				r.CurrSuccessor = newSuccessor
 			}
-			r.CurrSuccessor = newSuccessor
-		}
 
-		if newPredecessor != r.CurrPredecessor {
-			if newPredecessor != r.Hash {
-				r.onPredecessorChange(r.CurrPredecessor, newPredecessor)
+			if newPredecessor != r.CurrPredecessor {
+				if newPredecessor != r.Hash {
+					r.onPredecessorChange(r.CurrPredecessor, newPredecessor)
+				}
+				r.CurrPredecessor = newPredecessor
 			}
-			r.CurrPredecessor = newPredecessor
 		}
 		r.lock.Unlock()
 	}
+}
+
+func (r *Router) UpdateRingPos() {
+	r.lock.Lock()
+	r.CurrSuccessor = r.successor(r.Hash+1)
+	r.CurrPredecessor = r.predecessor(r.Hash)
+	r.Ready = true
+	r.lock.Unlock()
 }
 
 // Returns GRPC connection
@@ -156,11 +167,11 @@ func (r *Router) Get(key uint32) (*grpc.ClientConn, *grpc.ClientConn) {
 	b := make([]byte, 4)
 	binary.LittleEndian.PutUint32(b, key)
 	hasher.Write(b)
-	hash := uint32(hasher.Sum32())
+	hash := hasher.Sum32()
 
 	primaryHash := r.Successor(hash)
 	bkupHash := r.Successor(primaryHash + 1)
-	
+	//log.Println("Get:",key, primaryHash, bkupHash)
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	return r.conns[r.haship[primaryHash]], r.conns[r.haship[bkupHash]]
@@ -201,15 +212,14 @@ func (r *Router) GetSuccessor() *grpc.ClientConn {
 	return r.conns[r.haship[successorHash]]
 }
 
-func (r *Router) Successor(h uint32) uint32 {
-	r.lock.Lock()
-	defer r.lock.Unlock()
+func (r *Router) successor(h uint32) uint32 {
+
 	if len(r.liveBacks) == 1 {
-	  	return r.liveBacks[0]
+		return r.liveBacks[0]
 	}
 
 	for i := 0; i < len(r.liveBacks) - 1; i++ {
-	  	if r.liveBacks[i] < h && h <= r.liveBacks[i+1] {
+		if r.liveBacks[i] < h && h <= r.liveBacks[i+1] {
 			return r.liveBacks[i+1]
 		}
 	}
@@ -218,15 +228,19 @@ func (r *Router) Successor(h uint32) uint32 {
 	return r.liveBacks[0]
 }
 
-func (r *Router) Predecessor(h uint32) uint32 {
+func (r *Router) Successor(h uint32) uint32 {
 	r.lock.Lock()
 	defer r.lock.Unlock()
+	return r.successor(h)
+}
+
+func (r *Router) predecessor(h uint32) uint32 {
 	if len(r.liveBacks) == 1 {
-	  	return r.liveBacks[0]
+		return r.liveBacks[0]
 	}
 
 	for i := 0; i < len(r.liveBacks) - 1; i++ {
-	  	if r.liveBacks[i] < h && h <= r.liveBacks[i+1] {
+		if r.liveBacks[i] < h && h <= r.liveBacks[i+1] {
 			return r.liveBacks[i]
 		}
 	}
@@ -235,12 +249,19 @@ func (r *Router) Predecessor(h uint32) uint32 {
 	return r.liveBacks[len(r.liveBacks) - 1]
 }
 
+func (r *Router) Predecessor(h uint32) uint32 {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	return r.predecessor(h)
+}
+
 func (r *Router) OnSccessorChange(oldSucc, newSucc uint32) {
 
+	log.Println("OnsuccessorChange",r.Hash, oldSucc, newSucc)
 	if IsGreaterThan(oldSucc, newSucc) {
 		r.RegionChange <- RegionChangeInfo{
 			Successor: true,
-			Join:      false, 
+			Join:      true,
 			Prev:      oldSucc,
 			Curr:      newSucc,
 			PrevConn:  nil,
@@ -249,7 +270,7 @@ func (r *Router) OnSccessorChange(oldSucc, newSucc uint32) {
 	} else {
 		r.RegionChange <- RegionChangeInfo{
 			Successor: true,
-			Join:      true,
+			Join:      false,
 			Prev:      oldSucc,
 			Curr:      newSucc, 
 			PrevConn:  r.conns[r.haship[oldSucc]],
@@ -262,9 +283,10 @@ func (r *Router) OnSccessorChange(oldSucc, newSucc uint32) {
 
 func (r *Router) onPredecessorChange(oldPred, newPred uint32) {
 
+	log.Println("OnPredChange",r.Hash, oldPred, newPred)
 	if IsGreaterThan(oldPred, newPred) {
 		r.RegionChange <- RegionChangeInfo{
-			Successor: true,
+			Successor: false,
 			Join:      false, 
 			Prev:      oldPred,
 			Curr:      newPred, 
@@ -273,7 +295,7 @@ func (r *Router) onPredecessorChange(oldPred, newPred uint32) {
 		}
 	} else {
 		r.RegionChange <- RegionChangeInfo{
-			Successor: true,
+			Successor: false,
 			Join:      true, 
 			Prev:      oldPred,
 			Curr:      newPred,  

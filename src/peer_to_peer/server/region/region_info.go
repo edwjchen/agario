@@ -22,6 +22,7 @@ type RegionInfo struct {
 	FoodTree map[Point]bool
 	PlayersSeen map[string]*player.PlayerInfo
 	foodMux     sync.Mutex
+	readyMux    sync.Mutex
 	Router      *router.Router
 	Ready         bool
 	PlayerSeenMux sync.Mutex
@@ -85,14 +86,14 @@ func (r *RegionInfo) GetFood() []*Food {
 }
 
 func (r *RegionInfo) GetReady() bool {
-	r.foodMux.Lock()
-	defer r.foodMux.Unlock()
+	r.readyMux.Lock()
+	defer r.readyMux.Unlock()
 	return r.Ready
 }
 
 func (r *RegionInfo) SetReady() {
-	r.foodMux.Lock()
-	defer r.foodMux.Unlock()
+	r.readyMux.Lock()
+	defer r.readyMux.Unlock()
 	r.Ready = true
 }
 
@@ -196,7 +197,7 @@ func (r *RegionInfo) AddFoods(foods []*Food) {
 	for _, f := range foods {
 		foodPoint := Point{X: f.X, Y: f.Y} //orb.Point{x, y}
 		r.FoodTree[foodPoint] = true // .Add(foodPoint)
-		log.Println("Bkup adding", foodPoint)
+		//log.Println("Bkup adding", foodPoint)
 	}
 }
 
@@ -206,7 +207,7 @@ func (r *RegionInfo) RemoveFoods(foods []*Food) {
 	for _, f := range foods {
 		foodPoint := Point{X: f.X, Y: f.Y} //orb.Point{x, y}
 		delete(r.FoodTree, foodPoint) // .Add(foodPoint)
-		log.Println("Bkup removing", foodPoint)
+		//log.Println("Bkup removing", foodPoint)
 	}
 }
 
@@ -231,13 +232,13 @@ func (r *RegionInfo) WasEaten(blob *Blob) (bool, *Blob) {
 		if playerSeen.Blob.Ip == blob.Ip {
 			continue
 		}
-		log.Println(blob.Ip, "(mass:", blob.Mass, ") invoked eat, checking", playerSeen.Blob.Ip, "(mass:", playerSeen.Blob.Mass)
+		//log.Println(blob.Ip, "(mass:", blob.Mass, ") invoked eat, checking", playerSeen.Blob.Ip, "(mass:", playerSeen.Blob.Mass)
 
 		currBlob := playerSeen.GetBlob()
 		currBlobRadius := player.GetRadiusFromMass(currBlob.Mass)
 
 		centerDistance := blobDistance(blob.X, blob.Y, currBlob.X, currBlob.Y)
-		log.Println(blob.Ip, "r:", blobRadius, ";", playerSeen.Blob.Ip, "r:", currBlobRadius, "CR: ", centerDistance)
+		//log.Println(blob.Ip, "r:", blobRadius, ";", playerSeen.Blob.Ip, "r:", currBlobRadius, "CR: ", centerDistance)
 
 		if currBlobRadius > (centerDistance + blobRadius + Conf.EAT_RADIUS_DELTA) {
 			return false, currBlob
