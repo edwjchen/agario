@@ -1,13 +1,13 @@
 package region
 
 import (
+	"golang.org/x/net/context"
 	"log"
 	"math"
 	"math/rand"
-	"golang.org/x/net/context"
 	. "peer_to_peer/common"
-	"peer_to_peer/server/region_pb"
 	"peer_to_peer/server/player"
+	"peer_to_peer/server/region_pb"
 	"peer_to_peer/server/router"
 	"sync"
 	"time"
@@ -20,11 +20,11 @@ type Point struct {
 
 type RegionInfo struct {
 	FoodTree map[Point]bool
-	// PlayersIn     map[string]*player.PlayerInfo
 	PlayersSeen map[string]*player.PlayerInfo
 	foodMux     sync.Mutex
+	readyMux    sync.Mutex
 	Router      *router.Router
-	// PlayerInMux   sync.Mutex
+	Ready         bool
 	PlayerSeenMux sync.Mutex
 	x             uint16
 	y             uint16
@@ -52,6 +52,7 @@ func (r *RegionInfo) InitRegion(x, y uint32, router *router.Router) {
 	r.FoodTree = make(map[Point]bool)
 	r.Router = router
 	r.foodMux.Unlock()
+	r.Quit = make(chan bool, 1)
 	// r.PlayerInMux.Unlock()
 	r.PlayerSeenMux.Unlock()
 }
@@ -62,6 +63,7 @@ func (r *RegionInfo) MaintainRegion() {
 		<-time.Tick(time.Second)
 		select {
 		case <-r.Quit:
+			log.Println(r.hash, "QUIT!")
 			return
 		default:
 			r.blobCacheClear()
@@ -85,16 +87,24 @@ func (r *RegionInfo) GetFood() []*Food {
 	return foodSlice
 }
 
-// func (r *RegionInfo) GetIn() map[string]*player.PlayerInfo {
-// 	// r.PlayerInMux.Lock()
-// 	// defer r.PlayerInMux.Unlock()
-// 	copy := make(map[string]*player.PlayerInfo)
-// 	// for k, v := range r.PlayersIn {
-// 		copy[k] = v
-// 	}
-// 	copy := r.PlayersIn
-// 	return copy
-// }
+func (r *RegionInfo) GetReady() bool {
+	r.readyMux.Lock()
+	defer r.readyMux.Unlock()
+	return r.Ready
+
+}
+
+func (r *RegionInfo) SetReady() {
+	r.readyMux.Lock()
+	r.Ready = true
+	r.readyMux.Unlock()
+}
+
+func (r *RegionInfo) UnsetReady() {
+	r.readyMux.Lock()
+	r.Ready = false
+	r.readyMux.Unlock()
+}
 
 func (r *RegionInfo) GetSeen() map[string]*player.PlayerInfo {
 	r.PlayerSeenMux.Lock()
@@ -141,13 +151,6 @@ func (r *RegionInfo) spawnFood() {
 }
 
 func (r *RegionInfo) blobCacheClear() {
-	// r.PlayerInMux.Lock()
-	// for k, p := range r.PlayersIn {
-	// 	if time.Now().Sub(p.LastUpdate) > time.Millisecond*500 {
-	// 		delete(r.PlayersIn, k)
-	// 	}
-	// }
-	// r.PlayerInMux.Unlock()
 
 	r.PlayerSeenMux.Lock()
 	for k, p := range r.PlayersSeen {
@@ -158,16 +161,14 @@ func (r *RegionInfo) blobCacheClear() {
 	r.PlayerSeenMux.Unlock()
 }
 
+func (r *RegionInfo) ClearAllBlobCache() {
+	r.PlayerSeenMux.Lock()
+	r.PlayersSeen = make(map[string]*player.PlayerInfo)
+	r.PlayerSeenMux.Unlock()
+}
+
 func (r *RegionInfo) removeFood(food Point) {
-	// r.PlayerInMux.Lock()
-	// r.PlayerSeenMux.Lock()
 	delete(r.FoodTree, food)
-	// log.Println("Removing", food)
-	// if len(r.PlayersIn) == 0 && len(r.PlayersSeen) == 0 {
-	// 	log.Printf("Eating with no player exist")
-	// }
-	// r.PlayerSeenMux.Unlock()
-	// r.PlayerInMux.Unlock()
 }
 
 // Returns number of foods eaten by player
@@ -205,7 +206,7 @@ func (r *RegionInfo) AddFoods(foods []*Food) {
 	for _, f := range foods {
 		foodPoint := Point{X: f.X, Y: f.Y} //orb.Point{x, y}
 		r.FoodTree[foodPoint] = true // .Add(foodPoint)
-		log.Println("Bkup adding", foodPoint)
+		//log.Println("Bkup adding", foodPoint)
 	}
 }
 
@@ -215,17 +216,13 @@ func (r *RegionInfo) RemoveFoods(foods []*Food) {
 	for _, f := range foods {
 		foodPoint := Point{X: f.X, Y: f.Y} //orb.Point{x, y}
 		delete(r.FoodTree, foodPoint) // .Add(foodPoint)
-		log.Println("Bkup removing", foodPoint)
+		//log.Println("Bkup removing", foodPoint)
 	}
 }
 
 // Precondition: calling function already has lock on r.foodMux
 func (r *RegionInfo) getNumFoods() uint32 {
 	return uint32(len(r.FoodTree))
-}
-
-func getRegionID(x, y uint16) uint32 {
-	return uint32(x)<<16 | uint32(y)
 }
 
 func (r *RegionInfo) BlobIsIn(blob *Blob) bool {
@@ -244,13 +241,13 @@ func (r *RegionInfo) WasEaten(blob *Blob) (bool, *Blob) {
 		if playerSeen.Blob.Ip == blob.Ip {
 			continue
 		}
-		log.Println(blob.Ip, "(mass:", blob.Mass, ") invoked eat, checking", playerSeen.Blob.Ip, "(mass:", playerSeen.Blob.Mass)
+		//log.Println(blob.Ip, "(mass:", blob.Mass, ") invoked eat, checking", playerSeen.Blob.Ip, "(mass:", playerSeen.Blob.Mass)
 
 		currBlob := playerSeen.GetBlob()
 		currBlobRadius := player.GetRadiusFromMass(currBlob.Mass)
 
 		centerDistance := blobDistance(blob.X, blob.Y, currBlob.X, currBlob.Y)
-		log.Println(blob.Ip, "r:", blobRadius, ";", playerSeen.Blob.Ip, "r:", currBlobRadius, "CR: ", centerDistance)
+		//log.Println(blob.Ip, "r:", blobRadius, ";", playerSeen.Blob.Ip, "r:", currBlobRadius, "CR: ", centerDistance)
 
 		if currBlobRadius > (centerDistance + blobRadius + Conf.EAT_RADIUS_DELTA) {
 			return false, currBlob
