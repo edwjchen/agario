@@ -29,9 +29,9 @@ class GRPCWrapper:
     
     def respawn(self):
         self.channel.close()
-        time.sleep(10)
+        time.sleep(5)
         self.channel = grpc.insecure_channel(self.ip)
-        self.stub = blob_pb2_grpc.PlayerStub(self.channel)
+        self.stub = blob_pb2_grpc.BlobStub(self.channel)
 
     def init(self):
         initRequest = blob_pb2.InitRequest()
@@ -39,8 +39,11 @@ class GRPCWrapper:
         initResponse = self.stub.Init(initRequest)
         return initResponse
 
-    def region(self):
+    def region(self, name, x, y):
         regionRequest = blob_pb2.RegionRequest()
+        regionRequest.id = name
+        regionRequest.x = x
+        regionRequest.y = y
         start = time.time()
         regionResponse = self.stub.Region(regionRequest)
         end = time.time()

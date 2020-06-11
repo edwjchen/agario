@@ -7,11 +7,13 @@ import time
 import json
 import sys
 
+PLAYER_SERVER_PORT = '3000'
+
 class GRPCWrapper:
     def __init__(self, IP, run):
-        self.ip = IP
-        self.port = IP.split(":")[1]
-        self.channel = grpc.insecure_channel(IP)
+        self.port = '3000'
+        self.ip = IP + ':' + self.port
+        self.channel = grpc.insecure_channel(self.ip)
         self.stub = player_pb2_grpc.PlayerStub(self.channel)
         self.log_file_name = "./logs/" + str(run) + "=" + self.port + ".json"
         self.region_rtts = []
@@ -26,10 +28,10 @@ class GRPCWrapper:
         with open(self.log_file_name, "w+") as f:
             json.dump(rtt_data, f, indent=2)
         sys.exit(0)
-    
+
     def respawn(self):
         self.channel.close()
-        time.sleep(10)
+        time.sleep(5)
         self.channel = grpc.insecure_channel(self.ip)
         self.stub = player_pb2_grpc.PlayerStub(self.channel)
 
@@ -59,5 +61,5 @@ class GRPCWrapper:
         runtime = end - start
         self.move_rtts.append(runtime)
         return moveResponse
-  
-    
+
+

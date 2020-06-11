@@ -18,14 +18,12 @@
 
   "VER_FILE": "agarioVer",
 
-  "PLAYER_PORT": "4000",
-  "REGION_PORT": "4001",
+  "PLAYER_PORT": "3000",
+  "REGION_PORT": "3001",
 
-  "ENTRY_SERVER": "localhost:8080",
+  "ENTRY_SERVER": "172.31.24.228:8080",
   "REGION_SERVERS": [
-    "localhost:3001",
-    "localhost:4001",
-    "localhost:5001",
-    "localhost:6001"
+    "172.31.26.220:3001",
+    "172.31.24.228:3001"
   ]
 }
