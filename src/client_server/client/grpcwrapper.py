@@ -10,10 +10,9 @@ import sys
 class GRPCWrapper:
     def __init__(self, IP, run):
         self.ip = IP
-        self.port = IP.split(":")[1]
         self.channel = grpc.insecure_channel(IP)
         self.stub = blob_pb2_grpc.BlobStub(self.channel)
-        self.log_file_name = "./logs/" + str(run) + "=" + self.port + ".json"
+        self.log_file_name = "./logs/" + str(run) + "=" + self.ip + ".json"
         self.region_rtts = []
         self.move_rtts = []
 
