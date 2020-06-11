@@ -15,15 +15,26 @@ ec2_resource = boto3.resource('ec2',
 #     Monitoring={'Enabled': False},
 #     SecurityGroups=['agario'])
 
-instance_ids = []
+# running_instances = ec2_resource.instances.filter(Filters=[{'Name': 'instance-state-name', 'Values': ['running']}])
 
-ec2_client = boto3.client('ec2')
-response = ec2_client.describe_instances()
-for reservation in response["Reservations"]:
-    for instance in reservation["Instances"]:
-            print(instance["InstanceId"])
-            instance_ids.append(instance["InstanceId"])
+# for instance in running_instances:
+#     print(instance.id, instance.instance_type)
+#     ec2_resource.instances.filter(InstanceIds=[instance.id]).stop()
 
-instance_ids = instance_ids[:60]
-print(len(instance_ids))
+stopped_instances = ec2_resource.instances.filter(Filters=[{'Name': 'instance-state-name', 'Values': ['stopped', 'stopping']}])
+for instance in stopped_instances:
+    print(instance.id, instance.instance_type)
+    print(instance.private_ip_address)
+    print()
 
+
+# instance_ids = []
+
+# ec2_client = boto3.client('ec2')
+# response = ec2_client.describe_instances()
+# for reservation in response["Reservations"]:
+#     for instance in reservation["Instances"]:
+#             print(instance["InstanceId"])
+#             print(instance)
+#             print()
+#             instance_ids.append(instance["InstanceId"])
