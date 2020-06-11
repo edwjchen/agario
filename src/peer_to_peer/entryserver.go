@@ -66,7 +66,7 @@ func (EntryServer) Join(ctx context.Context, request *JoinRequest) (*JoinReply, 
 	joinIp := request.GetIp()
 	var action string
 	var ip string
-	if entryInfo.ShouldCreate() {
+	if !entryInfo.ShouldCreate() {
 		action = JOIN_ACTION
 		entryInfo.AddNode(joinIp)
 		ip = entryInfo.GetNodeIP() //get IP CALL HERE

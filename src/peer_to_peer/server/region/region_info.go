@@ -1,12 +1,11 @@
 package region
 
 import (
+	"golang.org/x/net/context"
 	"log"
 	"math"
 	"math/rand"
-	"golang.org/x/net/context"
 	. "peer_to_peer/common"
-	"peer_to_peer/server/region_pb"
 	"peer_to_peer/server/player"
 	"peer_to_peer/server/router"
 	"sync"
@@ -20,11 +19,10 @@ type Point struct {
 
 type RegionInfo struct {
 	FoodTree map[Point]bool
-	// PlayersIn     map[string]*player.PlayerInfo
 	PlayersSeen map[string]*player.PlayerInfo
 	foodMux     sync.Mutex
 	Router      *router.Router
-	// PlayerInMux   sync.Mutex
+	Ready         bool
 	PlayerSeenMux sync.Mutex
 	x             uint16
 	y             uint16
@@ -85,16 +83,17 @@ func (r *RegionInfo) GetFood() []*Food {
 	return foodSlice
 }
 
-// func (r *RegionInfo) GetIn() map[string]*player.PlayerInfo {
-// 	// r.PlayerInMux.Lock()
-// 	// defer r.PlayerInMux.Unlock()
-// 	copy := make(map[string]*player.PlayerInfo)
-// 	// for k, v := range r.PlayersIn {
-// 		copy[k] = v
-// 	}
-// 	copy := r.PlayersIn
-// 	return copy
-// }
+func (r *RegionInfo) GetReady() bool {
+	r.foodMux.Lock()
+	defer r.foodMux.Unlock()
+	return r.Ready
+}
+
+func (r *RegionInfo) SetReady() {
+	r.foodMux.Lock()
+	defer r.foodMux.Unlock()
+	r.Ready = true
+}
 
 func (r *RegionInfo) GetSeen() map[string]*player.PlayerInfo {
 	r.PlayerSeenMux.Lock()
@@ -141,13 +140,6 @@ func (r *RegionInfo) spawnFood() {
 }
 
 func (r *RegionInfo) blobCacheClear() {
-	// r.PlayerInMux.Lock()
-	// for k, p := range r.PlayersIn {
-	// 	if time.Now().Sub(p.LastUpdate) > time.Millisecond*500 {
-	// 		delete(r.PlayersIn, k)
-	// 	}
-	// }
-	// r.PlayerInMux.Unlock()
 
 	r.PlayerSeenMux.Lock()
 	for k, p := range r.PlayersSeen {
@@ -158,16 +150,14 @@ func (r *RegionInfo) blobCacheClear() {
 	r.PlayerSeenMux.Unlock()
 }
 
+func (r *RegionInfo) ClearAllBlobCache() {
+	r.PlayerSeenMux.Lock()
+	r.PlayersSeen = make(map[string]*player.PlayerInfo)
+	r.PlayerSeenMux.Unlock()
+}
+
 func (r *RegionInfo) removeFood(food Point) {
-	// r.PlayerInMux.Lock()
-	// r.PlayerSeenMux.Lock()
 	delete(r.FoodTree, food)
-	// log.Println("Removing", food)
-	// if len(r.PlayersIn) == 0 && len(r.PlayersSeen) == 0 {
-	// 	log.Printf("Eating with no player exist")
-	// }
-	// r.PlayerSeenMux.Unlock()
-	// r.PlayerInMux.Unlock()
 }
 
 // Returns number of foods eaten by player
@@ -222,10 +212,6 @@ func (r *RegionInfo) RemoveFoods(foods []*Food) {
 // Precondition: calling function already has lock on r.foodMux
 func (r *RegionInfo) getNumFoods() uint32 {
 	return uint32(len(r.FoodTree))
-}
-
-func getRegionID(x, y uint16) uint32 {
-	return uint32(x)<<16 | uint32(y)
 }
 
 func (r *RegionInfo) BlobIsIn(blob *Blob) bool {

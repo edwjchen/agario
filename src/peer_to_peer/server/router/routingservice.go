@@ -10,19 +10,32 @@ import (
 	"encoding/binary"
 	"google.golang.org/grpc"
 	"golang.org/x/net/context"
-	"peer_to_peer/server/region_pb"
+	. "peer_to_peer/server/region_pb"
 	"sort"
 )
+
+type RegionChangeInfo struct {
+	Successor bool 
+	Join      bool 
+	Prev      uint32 
+	Curr      uint32
+	PrevConn  *grpc.ClientConn 
+	CurrConn  *grpc.ClientConn
+
+}
 
 type Router struct {
 	lock sync.Mutex 
 	playerLock sync.RWMutex 
 	conns map[string] *grpc.ClientConn // map from ip of ip to connections
 	playerConns map[string] *grpc.ClientConn
-	iphash map[string]uint32
-	haship map[uint32]string
+	iphash  map[string]uint32
+	haship  map[uint32]string
 	liveBacks []uint32 // stores hashes of ip
-	Hash uint32
+	Hash      uint32
+	CurrPredecessor uint32
+	CurrSuccessor   uint32
+	RegionChange    chan RegionChangeInfo
 }
 
 type heartbeatOutput struct {
@@ -69,8 +82,8 @@ func (r *Router) Heartbeat() {
 			}
 		}
 		// TODO
-		client := region_pb.NewRegionClient(cxn)
-		_, err := client.Ping(context.Background(), &region_pb.EmptyRequest{})
+		client := NewRegionClient(cxn)
+		_, err := client.Ping(context.Background(), &EmptyRequest{})
 		if err != nil {
 			log.Println("Failed ping", err)
 			retChan <- heartbeatOutput{
@@ -105,9 +118,33 @@ func (r *Router) Heartbeat() {
 		}
 
 		sort.Slice(r.liveBacks, func(i, j int) bool {
-		  	return r.liveBacks[i] < r.liveBacks[j]
+			return r.liveBacks[i] < r.liveBacks[j]
 		})
 
+		newSuccessor := r.Successor(r.Hash)
+		newPredecessor := r.Predecessor(r.Hash)
+
+		if newSuccessor != r.CurrSuccessor {
+			// handle one node case
+			if newSuccessor == r.Hash {
+				r.RegionChange <- RegionChangeInfo{
+					Successor: true,
+					Join:      true, 
+					Prev:      nil,
+					Curr:      nil,
+				}
+			} else {
+				r.OnSccessorChange(r.CurrSuccessor, newSuccessor)
+			}
+			r.CurrSuccessor = newSuccessor
+		}
+
+		if newPredecessor != r.CurrPredecessor {
+			if newPredecessor != r.Hash {
+				r.onPredecessorChange(r.CurrPredecessor, newPredecessor)
+			}
+			r.CurrPredecessor = newPredecessor
+		}
 		r.lock.Unlock()
 	}
 }
@@ -181,28 +218,99 @@ func (r *Router) Successor(h uint32) uint32 {
 	return r.liveBacks[0]
 }
 
-func (r *Router) onSuccessorJoin() {
+func (r *Router) Predecessor(h uint32) uint32 {
 	r.lock.Lock()
 	defer r.lock.Unlock()
-	// move regions on curr node that hash to curr region to joined node
+	if len(r.liveBacks) == 1 {
+	  	return r.liveBacks[0]
+	}
+
+	for i := 0; i < len(r.liveBacks) - 1; i++ {
+	  	if r.liveBacks[i] < h && h <= r.liveBacks[i+1] {
+			return r.liveBacks[i]
+		}
+	}
+
+	//wraparound
+	return r.liveBacks[len(r.liveBacks) - 1]
 }
 
-func (r *Router) onSuccessorLeave() {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-	// move regions on curr node that hash to curr region to new successor
+func (r *Router) OnSccessorChange(oldSucc, newSucc uint32) {
+
+	if IsGreaterThan(oldSucc, newSucc) {
+		r.RegionChange <- RegionChangeInfo{
+			Successor: true,
+			Join:      false, 
+			Prev:      oldSucc,
+			Curr:      newSucc,
+			PrevConn:  nil,
+			CurrConn:  r.conns[r.haship[newSucc]],
+		}
+	} else {
+		r.RegionChange <- RegionChangeInfo{
+			Successor: true,
+			Join:      true,
+			Prev:      oldSucc,
+			Curr:      newSucc, 
+			PrevConn:  r.conns[r.haship[oldSucc]],
+			CurrConn:  r.conns[r.haship[newSucc]],
+		}
+	}
+
 }
 
-func (r *Router) onPredecessorJoin() {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-	// remove regions on curr node that hash to prepredecessor
-	// move regions that hash to joining node from curr node to joining node
-	// remove regions on successor that hash to joining node
+
+func (r *Router) onPredecessorChange(oldPred, newPred uint32) {
+
+	if IsGreaterThan(oldPred, newPred) {
+		r.RegionChange <- RegionChangeInfo{
+			Successor: true,
+			Join:      false, 
+			Prev:      oldPred,
+			Curr:      newPred, 
+			PrevConn:  nil,
+			CurrConn:  r.conns[r.haship[newPred]],
+		}
+	} else {
+		r.RegionChange <- RegionChangeInfo{
+			Successor: true,
+			Join:      true, 
+			Prev:      oldPred,
+			Curr:      newPred,  
+			PrevConn:  r.conns[r.haship[oldPred]],
+			CurrConn:  r.conns[r.haship[newPred]],
+		}
+	}
+
 }
 
-func (r *Router) onPredecessorLeave() {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-	// move regions that hashed to node that left to successor
+const halfMaxValue = 2147483648
+func IsGreaterThan(this, other uint32) bool {
+  return (((this > other) && (this - other) <= halfMaxValue) || ((other > this) && (other - this) > halfMaxValue));
 }
+
+// func (r *Router) onSuccessorJoin() {
+// 	r.lock.Lock()
+// 	defer r.lock.Unlock()
+// 	// move regions on curr node that hash to curr region to joined node
+// }
+
+// func (r *Router) onSuccessorLeave() {
+// 	r.lock.Lock()
+// 	defer r.lock.Unlock()
+// 	// move regions on curr node that hash to curr region to new successor
+// }
+
+// func (r *Router) onPredecessorJoin() {
+// 	r.lock.Lock()
+// 	defer r.lock.Unlock()
+// 	// remove regions on curr node that hash to prepredecessor
+// 	// move regions that hash to joining node from curr node to joining node
+// 	// remove regions on successor that hash to joining node
+// }
+
+// func (r *Router) onPredecessorLeave() {
+// 	r.lock.Lock()
+// 	defer r.lock.Unlock()
+// 	// move regions that hashed to node that left to successor
+// }

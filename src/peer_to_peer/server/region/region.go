@@ -4,7 +4,6 @@ import (
 	"golang.org/x/net/context"
 	// "github.com/paulmach/orb/quadtree"
 	"encoding/binary"
-	"fmt"
 	"hash/fnv"
 	"log"
 	. "peer_to_peer/common"
@@ -12,35 +11,47 @@ import (
 	. "peer_to_peer/server/player_pb"
 	. "peer_to_peer/server/region_pb"
 	"peer_to_peer/server/router"
-	"strings"
 	"sync"
 	"time"
 )
 
 type RegionHandler struct {
-	Regions map[uint32]*RegionInfo
-	Router  *router.Router
-	mux     sync.RWMutex
+	RegionHash    map[uint32]uint32
+	Regions       map[uint32]*RegionInfo
+	BackupRegions map[uint32]*RegionInfo
+	Router        *router.Router
+	mux           sync.RWMutex
+	RegionChange  chan router.RegionChangeInfo 
+}
+
+func getHash(id uint32) uint32 {
+	hasher := fnv.New32a()
+	b := make([]byte, 4)
+	binary.LittleEndian.PutUint32(b, id)
+	hasher.Write(b)
+	h := hasher.Sum32()
+	return h
 }
 
 func (rh *RegionHandler) Init() {
-	// rh.Router.Heartbeat()
-	go rh.Router.Heartbeat()
-	time.Sleep(time.Second * 3)
-	rh.mux.Lock()
 
 	rh.Regions = make(map[uint32]*RegionInfo)
+	rh.BackupRegions = make(map[uint32]*RegionInfo)
+	rh.RegionHash = make(map[uint32]uint32)
+
+	go rh.Router.Heartbeat()
+	time.Sleep(time.Second * 3)
+
+	rh.mux.Lock()
 
 	var i, j uint32
 	for i = 0; i < Conf.NREGION_WIDTH; i++ {
 		for j = 0; j < Conf.NREGION_HEIGHT; j++ {
-			regionID := getRegionID(uint16(i), uint16(j))
 			
-			hasher := fnv.New32a()
-			b := make([]byte, 4)
-			binary.LittleEndian.PutUint32(b, regionID)
-			hasher.Write(b)
-			h := uint32(hasher.Sum32())
+			regionID := getRegionID(uint16(i), uint16(j))
+			h := getHash(regionID)
+
+			rh.RegionHash[regionID] = h
 			regionSuccessorHash := rh.Router.Successor(h)
 
 			if regionSuccessorHash == rh.Router.Hash {
@@ -53,15 +64,61 @@ func (rh *RegionHandler) Init() {
 				log.Println("I'M BACKUP!")
 				newRegion := &RegionInfo{}
 				newRegion.InitRegion(i, j, rh.Router)
+				newRegion.SetReady()
 				// go newRegion.MaintainRegion()
-				rh.Regions[regionID] = newRegion
+				rh.BackupRegions[regionID] = newRegion
 			} else {
 				log.Println("NOT MY THING!")
 			}
 		}
 	}
 	rh.mux.Unlock()
+	go rh.NodeChangeHandler()
+}
 
+func (rh *RegionHandler) Join() {
+	// rh.Router.Heartbeat()
+	
+	rh.Regions = make(map[uint32]*RegionInfo)
+	rh.BackupRegions = make(map[uint32]*RegionInfo)
+	rh.RegionHash = make(map[uint32]uint32)
+
+	
+	go rh.Router.Heartbeat()
+	time.Sleep(time.Second * 1)
+
+	var i, j uint32
+	for i = 0; i < Conf.NREGION_WIDTH; i++ {
+		for j = 0; j < Conf.NREGION_HEIGHT; j++ {
+			
+			regionID := getRegionID(uint16(i), uint16(j))
+			h := getHash(regionID)
+
+			rh.RegionHash[regionID] = h
+			regionSuccessorHash := rh.Router.Successor(h)
+			successorConn := rh.Router.GetSuccessor()
+			regionClient := NewRegionClient(successorConn)
+
+			if regionSuccessorHash == rh.Router.Hash {
+				log.Println("MY REGION!")
+				newRegion := &RegionInfo{}
+				newRegion.InitRegion(i, j, rh.Router)
+				response, err := regionClient.TransferPrimary(context.Background(), &IdRegionRequest{Id: regionID})
+				if err != nil {
+					log.Println("Can't TransferPrimary: ", err)
+					continue
+				}
+				newRegion.AddFoods(response.GetFoods())
+				newRegion.SetReady()
+				go newRegion.MaintainRegion()
+				rh.mux.Lock()
+				rh.Regions[regionID] = newRegion
+				rh.mux.Unlock()
+			} 
+		}
+	}
+	go rh.NodeChangeHandler()
+	
 }
 
 func (rh *RegionHandler) Ping(ctx context.Context, request *EmptyRequest) (*EmptyResponse, error) {
@@ -70,26 +127,31 @@ func (rh *RegionHandler) Ping(ctx context.Context, request *EmptyRequest) (*Empt
 }
 
 func (rh *RegionHandler) GetRegion(ctx context.Context, request *IdRegionRequest) (*GetRegionResponse, error) {
-	rh.mux.RLock()
 	regionId := request.GetId()
-	region, _ := rh.Regions[regionId]
-	// log.Println("Error on get: ", err)
-	// log.Println("GetRegion: regionID", regionId, " (x, y): ", GetRegionX(regionId), GetRegionY(regionId), " got: ", region)
-
-	// for id, info := range rh.Regions {
-	// 	log.Println("all regions: x, y:", GetRegionX(id), GetRegionY(id))
-	// 	log.Println("info: ", info)
-	// }
-
+	rh.mux.RLock()
+	region, ok := rh.Regions[regionId]
 	rh.mux.RUnlock()
+	if !ok {
+		rh.mux.RLock()
+		region, ok = rh.BackupRegions[regionId]
+		rh.mux.RUnlock()
+		if !ok {
+			log.Println(GetRegionX(regionId), GetRegionY(regionId), "NOT IN PRIMARY NOR BACKUP!")
+			return &GetRegionResponse{Blobs: []*Blob{}, Foods: []*Food{}}, nil
+		}
+	}
+
+	regionReady := region.GetReady()
+
+	if !regionReady {
+		return &GetRegionResponse{Blobs: []*Blob{}, Foods: []*Food{}}, nil
+	}
 
 	allPlayers := make(map[string]*Blob)
 	for name, p := range region.GetSeen() {
 		allPlayers[name] = p.GetBlob()
 	}
-	// for name, p := range region.GetIn() {
-	// 	allPlayers[name] = p.GetBlob()
-	// }
+
 	blobs := []*Blob{}
 	for _, blob := range allPlayers {
 		// log.Println("seq: ", blob.Seq)
@@ -101,34 +163,71 @@ func (rh *RegionHandler) GetRegion(ctx context.Context, request *IdRegionRequest
 	response := GetRegionResponse{
 		Blobs: blobs,
 		Foods: region.GetFood(),
+		Ready: true,
 	}
 	return &response, nil
 }
 
 func (rh *RegionHandler) AddRegion(ctx context.Context, request *AddRegionRequest) (*EmptyResponse, error) {
+	newRegionId := request.GetId()
+	newRegion := &RegionInfo{}
+	newRegion.InitRegion(uint32(GetRegionX(newRegionId)), uint32(GetRegionY(newRegionId)), rh.Router)
+	newRegion.AddFoods(request.GetFoods())
+
+	rh.mux.Lock()
+	rh.BackupRegions[newRegionId] = newRegion
+	rh.mux.Unlock()
+
 	response := EmptyResponse{}
 	return &response, nil
 }
 
 func (rh *RegionHandler) RemoveRegion(ctx context.Context, request *IdRegionRequest) (*EmptyResponse, error) {
-	//send quit channel
-	//close quit channel
+
+	rh.mux.Lock()
+	delete(rh.BackupRegions, request.GetId())
+	rh.mux.Unlock()
 
 	response := EmptyResponse{}
 	return &response, nil
 }
 
-func BlobID(blob *Blob) string {
-	var b strings.Builder
-	fmt.Fprintf(&b, "%s:%x", blob.Ip, blob.Ver)
-	return b.String()
+func (rh *RegionHandler) TransferPrimary(ctx context.Context, request *IdRegionRequest) (*GetRegionResponse, error) {
+
+	rh.mux.Lock()
+	defer rh.mux.Unlock()
+
+	response := &GetRegionResponse{}
+	rid := request.GetId()
+	region, ok := rh.Regions[rid]
+	if ok {
+		response.Foods = region.GetFood()
+		response.Blobs = []*Blob{}
+		region.Quit <- true
+		region.ClearAllBlobCache()
+		rh.BackupRegions[rid] = region
+		delete(rh.Regions, rid)
+	}	else {
+		log.Println("No primary found in TransferPrimary!")
+	}
+	return response, nil
+
 }
 
 func (rh *RegionHandler) ClientUpdate(ctx context.Context, request *UpdateRegionRequest) (*UpdateRegionResponse, error) {
 	regionId := request.GetId()
 	rh.mux.RLock()
-	region, _ := rh.Regions[regionId]
+	region, ok := rh.Regions[regionId]
 	rh.mux.RUnlock()
+	if !ok {
+		rh.mux.RLock()
+		region, ok = rh.BackupRegions[regionId]
+		rh.mux.RUnlock()
+		if !ok {
+			log.Println(GetRegionX(regionId), GetRegionY(regionId), "NOT IN PRIMARY NOR BACKUP!")
+			return &UpdateRegionResponse{DeltaMass: 0, Alive: false}, nil
+		}
+	}
 
 	updatedBlob := request.GetBlob()
 
@@ -163,9 +262,9 @@ func (rh *RegionHandler) ClientUpdate(ctx context.Context, request *UpdateRegion
 	// 	Else:
 	// 		massIncrease = getMasncreaseFromFood(player)
 	// 		UpdatePos in local region hint cache
+	regionReady := region.GetReady()
 
-	// region.PlayerInMux.Lock()
-	// defer region.PlayerInMux.Unlock()
+	// could use finer granularity locking?...
 	region.PlayerSeenMux.Lock()
 	defer region.PlayerSeenMux.Unlock()
 
@@ -173,27 +272,28 @@ func (rh *RegionHandler) ClientUpdate(ctx context.Context, request *UpdateRegion
 	if ok {
 		// blob already dead: DEAD
 		if !region.PlayersSeen[updatedBlobID].Blob.Alive {
-			return &UpdateRegionResponse{DeltaMass: 0, Alive: false}, nil
+			return &UpdateRegionResponse{DeltaMass: 0, Alive: false, Ready: regionReady}, nil
 		} 
 		// OO info: ignore
 		if updatedBlob.Seq > 0 && existingPlayer.Blob.Seq > updatedBlob.Seq {
-			return &UpdateRegionResponse{DeltaMass: 0, Alive: true}, nil
+			return &UpdateRegionResponse{DeltaMass: 0, Alive: true, Ready: regionReady}, nil
 		}
-
-		
 	} 
 
-	// region.PlayersIn[updatedBlobID] = updatedPlayerInfo
 	region.PlayersSeen[updatedBlobID] = updatedPlayerInfo
 
 	if !updatedBlob.Alive {
 		// Remove blob from cache
-		return &UpdateRegionResponse{DeltaMass: 0, Alive: false}, nil
+		return &UpdateRegionResponse{DeltaMass: 0, Alive: false, Ready: regionReady}, nil
 	}
 
 	// Eviction info: just ignore
 	if updatedBlob.Seq < 0 {
-		return &UpdateRegionResponse{DeltaMass: 0, Alive: true}, nil
+		return &UpdateRegionResponse{DeltaMass: 0, Alive: true, Ready: regionReady}, nil
+	}
+
+	if !regionReady {
+		return &UpdateRegionResponse{DeltaMass: 0, Alive: true, Ready: regionReady}, nil
 	}
 
 	var massIncrease int32
@@ -218,29 +318,16 @@ func (rh *RegionHandler) ClientUpdate(ctx context.Context, request *UpdateRegion
 				}
 			}
 			log.Println("DEAD!!!")
-			return &UpdateRegionResponse{DeltaMass: 0, Alive: false}, nil
+			return &UpdateRegionResponse{DeltaMass: 0, Alive: false, Ready: true}, nil
 		}
 	} else {
 		massIncrease = region.GetNumFoodsEaten(updatedBlob)
 	}
 
-	// log.Println(updatedBlob.Ip)
-	// log.Println(massIncrease)
-	// if massIncrease != 0 {
-	// 	playerServer := rh.Router.GetPlayerConn(updatedBlob.Ip)
-	// 	client := NewPlayerClient(playerServer)
-	// 	// log.Println(client)
-	// 	massIncReq := &MassIncrementRequest{MassIncrease: massIncrease}
-	// 	_, err := client.MassIncrement(context.Background(), massIncReq)
-	// 	if err != nil {
-	// 		log.Println("Failed increment", err)
-	// 		rh.Router.InvalidatePlayerConn(updatedBlob.Ip)
-	// 	}
-	// }
-
 	response := UpdateRegionResponse{
 		DeltaMass: massIncrease,
 		Alive:     updatedBlob.Alive,
+		Ready:     true,
 	}
 	return &response, nil
 }
@@ -250,7 +337,7 @@ func (rh *RegionHandler) AddFoods(ctx context.Context, request *FoodRequest) (*E
 	
 	regionId := request.GetId()
 	rh.mux.RLock()
-	region, _ := rh.Regions[regionId]
+	region, _ := rh.BackupRegions[regionId]
 	rh.mux.RUnlock()
 
 	region.AddFoods(request.GetFoods())
@@ -263,7 +350,7 @@ func (rh *RegionHandler) RemoveFoods(ctx context.Context, request *FoodRequest) 
 	
 	regionId := request.GetId()
 	rh.mux.RLock()
-	region, _ := rh.Regions[regionId]
+	region, _ := rh.BackupRegions[regionId]
 	rh.mux.RUnlock()
 
 	region.RemoveFoods(request.GetFoods())
@@ -285,6 +372,135 @@ func GetRegionY(rid uint32) uint16 {
 	return uint16((rid & (0x0000ffff)))
 }
 
-// func getRegionID(x, y uint16) uint32 {
-// 	return uint32(x) << 16 | uint32(y)
-// }
+// rule of thumb: never do an RPC while holding a lock!
+func (rh *RegionHandler) NodeChangeHandler() {
+
+	for {
+		ncInfo := <-rh.RegionChange
+
+		if ncInfo.PrevConn == nil && ncInfo.CurrConn == nil {
+
+			// one node edge case: dump everything into primary
+			rh.mux.Lock()
+			for rid, r := range rh.BackupRegions {
+				rh.Regions[rid] = r 
+				go r.MaintainRegion()
+				delete(rh.BackupRegions, rid)
+			}
+			rh.mux.Unlock()
+
+
+		} else if ncInfo.Successor && ncInfo.Join {
+
+			// onSuccessorJoin:
+			// move regions on curr node that hash to curr region to joined node
+			
+			regionsCopy := make(map[uint32]*RegionInfo)
+			rh.mux.RLock()
+			for rid, r := range rh.Regions {
+				regionsCopy[rid] = r 
+			}
+			rh.mux.RUnlock()
+
+			for rid, r := range regionsCopy {
+				conn := ncInfo.CurrConn
+				regionClient := NewRegionClient(conn)
+				_, err := regionClient.AddRegion(context.Background(), &AddRegionRequest{Id: rid, Foods: r.GetFood()})
+				if err != nil {
+					log.Println("Successor Join big no no: ", err)
+				}
+				// conn := ncInfo.PrevConn
+				// _, err = regionClient.RemoveRegion(context.Background(), &region_pb.IdRegionRequest{Id: rid})
+				// if err != nil {
+				// 	log.Println("Successor Join big no no: ", err)
+				// }
+			}
+
+		} else if ncInfo.Successor && !ncInfo.Join {
+
+			// onSuccessorLeave:
+			// move regions on curr node that hash to curr region to new successor
+			regionsCopy := make(map[uint32]*RegionInfo)
+			rh.mux.RLock()
+			for rid, r := range rh.Regions {
+				regionsCopy[rid] = r 
+			}
+			rh.mux.RUnlock()
+
+			for rid, r := range regionsCopy {
+				conn := ncInfo.CurrConn
+				regionClient := NewRegionClient(conn)
+				_, err := regionClient.AddRegion(context.Background(), &AddRegionRequest{Id: rid, Foods: r.GetFood()})
+				if err != nil {
+					log.Println("Successor Join big no no: ", err)
+				}
+			}
+
+		} else if !ncInfo.Successor && ncInfo.Join {
+
+			// on predecessor join:
+			// remove regions on curr node that hash to prepredecessor
+			rh.mux.Lock()
+			for rid, _ := range rh.BackupRegions {
+				if rh.RegionHash[rid] == ncInfo.Prev {
+					delete(rh.BackupRegions, rid)
+				}
+			}
+			rh.mux.Unlock()
+
+			// remove region on successor for which now I'm backup
+			regionsCopy := make(map[uint32]*RegionInfo)
+			rh.mux.RLock()
+			for rid, r := range rh.Regions {
+				if rh.RegionHash[rid] == ncInfo.Curr {
+					regionsCopy[rid] = r 
+				}
+			}
+			rh.mux.RUnlock()
+
+			successorConn := rh.Router.GetSuccessor()
+			for rid, _ := range regionsCopy {
+				regionClient := NewRegionClient(successorConn)
+				_, err := regionClient.RemoveRegion(context.Background(), &IdRegionRequest{Id: rid})
+				if err != nil {
+					log.Println("Predecessor Join big no no: ", err)
+				}
+			}
+			
+			// move regions that hash to joining node from curr node to joining node
+			// remove regions on successor that hash to joining node
+			// XXX: let the new node do these
+
+		} else {
+
+			// move regions that hashed to node that left to successor
+			successorConn := rh.Router.GetSuccessor()
+			regionsCopy := make(map[uint32]*RegionInfo)
+			
+			rh.mux.Lock()
+			for rid, r := range rh.BackupRegions {
+				if rh.RegionHash[rid] == ncInfo.Prev {
+					regionsCopy[rid] = r 
+					rh.Regions[rid] = r
+					go r.MaintainRegion()
+					delete(rh.BackupRegions, rid)
+				}
+			}
+			rh.mux.Unlock()
+
+			successorConn = rh.Router.GetSuccessor()
+			for rid, r := range regionsCopy {
+				regionClient := NewRegionClient(successorConn)
+				_, err := regionClient.AddRegion(context.Background(), &AddRegionRequest{Id: rid, Foods: r.GetFood()})
+				if err != nil {
+					log.Println("Predecessor leave big no no: ", err)
+				}
+			}
+		}
+		
+	}
+}
+
+func getRegionID(x, y uint16) uint32 {
+	return uint32(x) << 16 | uint32(y)
+}

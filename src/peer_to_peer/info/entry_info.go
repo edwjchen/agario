@@ -38,5 +38,5 @@ func (e *EntryInfo) ShouldCreate() bool {
 	e.mux.Lock()
 	defer e.mux.Unlock()
 	
-	return len(e.CurrNodes) == 0
+	return len(e.CurrNodes) < e.MinPlayers
 }

@@ -4,6 +4,7 @@ import "common/common.proto";
 service Region {
   rpc Ping (EmptyRequest) returns (EmptyResponse) {}
   rpc AddRegion (AddRegionRequest) returns (EmptyResponse) {}
+  rpc TransferPrimary (IdRegionRequest) returns (GetRegionResponse) {}
   rpc GetRegion (IdRegionRequest) returns (GetRegionResponse) {}
   rpc RemoveRegion (IdRegionRequest) returns (EmptyResponse) {}
   rpc ClientUpdate (UpdateRegionRequest) returns (UpdateRegionResponse) {}
@@ -25,6 +26,7 @@ message IdRegionRequest {
 message GetRegionResponse {
   repeated common.Blob blobs = 1;
   repeated common.Food foods = 2;
+  bool ready = 3;
 }
 
 message UpdateRegionRequest {
@@ -35,6 +37,7 @@ message UpdateRegionRequest {
 message UpdateRegionResponse {
   int32 deltaMass = 1;
   bool alive = 2;
+  bool ready = 3;
 }
 
 message FoodRequest {

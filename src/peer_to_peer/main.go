@@ -32,9 +32,9 @@ func main() {
 	regionAddr := myAddr + ":" + common.Conf.REGION_PORT
 	playerAddr := myAddr + ":" + common.Conf.PLAYER_PORT
 
-	router := &router.Router{}
+	router := &router.Router{RegionChange: make(chan router.RegionChangeInfo)}
 	regionGrpcServer := grpc.NewServer()
-	var regionHandler region.RegionHandler = region.RegionHandler{Router: router}
+	regionHandler := region.RegionHandler{Router: router, RegionChange: router.RegionChange}
 	region_pb.RegisterRegionServer(regionGrpcServer, &regionHandler)
 	regionListener, err := net.Listen("tcp", regionAddr)
 	if err != nil {
@@ -47,8 +47,8 @@ func main() {
 	log.Println(err)
 	client := entryserver.NewEntryServerClient(conn)
 	joinRequest := &entryserver.JoinRequest{Ip: myAddr}
-	res, errabc := client.Join(context.Background(), joinRequest)
-	log.Println(res, errabc)
+	joinResp, errabc := client.Join(context.Background(), joinRequest)
+	log.Println(joinResp, errabc)
 
 	canStartRequest := &entryserver.CanStartRequest{}
 	for {
@@ -60,9 +60,13 @@ func main() {
 			break
 		}
 	}
+	router.Init(common.Conf.REGION_SERVERS, regionAddr, )
 
-	router.Init(common.Conf.REGION_SERVERS, regionAddr)
-	regionHandler.Init()
+	if joinResp.GetAction() == "JOIN" {
+		regionHandler.Join()
+	} else {
+		regionHandler.Init()
+	}
 
 	log.Println("PlayerHandler starting to process...")
 	var playerHandler player.PlayerHandler = player.PlayerHandler{Router: router}

@@ -54,7 +54,16 @@ func doClientUpdate(regionId uint32, c chan *UpdateRegionResponse, blob *Blob, r
 		} else {
 			log.Fatalln(regionId, "only has one associated node and is down!")
 		}
-	} 
+	} else if !response.GetReady() {
+		if primary != backup {
+			regionClient = NewRegionClient(backup)
+			responsebk, err := regionClient.ClientUpdate(context.Background(), &clientUpdate)
+			if err == nil && responsebk.GetReady() {
+				response = responsebk
+			} 
+		}
+	}
+
 	// call method on goroutine
 	c <- response
 }
@@ -173,24 +182,20 @@ func doRegionUpdate(regionId uint32, c chan *GetRegionResponse, r *router.Router
 		} else {
 			log.Fatalln(regionId, "only has one associated node and is down!")
 		}
-	} 
+	} else if !response.GetReady() {
+		if primary != backup {
+			regionClient = NewRegionClient(backup)
+			responsebk, err := regionClient.GetRegion(context.Background(), &getRegionRequest)
+			if err == nil && responsebk.GetReady() {
+				response = responsebk
+			} 
+		}
+	}
 
-	// call method on goroutine
 	c <- response
 }
 
 func (ph *PlayerHandler) Region(ctx context.Context, request *RegionRequest) (*RegionResponse, error) {
-	// regionId := request.GetId()
-	// conn := ph.router.Get(regionId)
-	// regionClient := region_pb.NewRegionClient(conn)
-
-	// regionRequest := &region_pb.IdRegionRequest{Id: regionId}
-	// getRegionResponse, _ := regionClient.GetRegion(context.Background(), regionRequest)
-
-	// response := region_pb.RegionResponse{
-	// 	Blobs: getRegionResponse.Blobs,
-	// 	Foods: getRegionResponse.Foods,
-	// }
 
 	//Get Info from Regions
 	//Compile Info from Regions
