@@ -130,8 +130,8 @@ func (r *Router) Heartbeat() {
 				r.RegionChange <- RegionChangeInfo{
 					Successor: true,
 					Join:      true, 
-					Prev:      nil,
-					Curr:      nil,
+					PrevConn:  nil,
+					CurrConn:  nil,
 				}
 			} else {
 				r.OnSccessorChange(r.CurrSuccessor, newSuccessor)

@@ -8,6 +8,7 @@ import (
 	. "peer_to_peer/common"
 	"peer_to_peer/server/player"
 	"peer_to_peer/server/router"
+	"peer_to_peer/server/region_pb"
 	"sync"
 	"time"
 )
