@@ -7,8 +7,8 @@ import (
 	"math/rand"
 	. "peer_to_peer/common"
 	"peer_to_peer/server/player"
-	"peer_to_peer/server/router"
 	"peer_to_peer/server/region_pb"
+	"peer_to_peer/server/router"
 	"sync"
 	"time"
 )
@@ -52,6 +52,7 @@ func (r *RegionInfo) InitRegion(x, y uint32, router *router.Router) {
 	r.FoodTree = make(map[Point]bool)
 	r.Router = router
 	r.foodMux.Unlock()
+	r.Quit = make(chan bool, 1)
 	// r.PlayerInMux.Unlock()
 	r.PlayerSeenMux.Unlock()
 }
@@ -62,6 +63,7 @@ func (r *RegionInfo) MaintainRegion() {
 		<-time.Tick(time.Second)
 		select {
 		case <-r.Quit:
+			log.Println(r.hash, "QUIT!")
 			return
 		default:
 			r.blobCacheClear()
@@ -89,12 +91,19 @@ func (r *RegionInfo) GetReady() bool {
 	r.readyMux.Lock()
 	defer r.readyMux.Unlock()
 	return r.Ready
+
 }
 
 func (r *RegionInfo) SetReady() {
 	r.readyMux.Lock()
-	defer r.readyMux.Unlock()
 	r.Ready = true
+	r.readyMux.Unlock()
+}
+
+func (r *RegionInfo) UnsetReady() {
+	r.readyMux.Lock()
+	r.Ready = false
+	r.readyMux.Unlock()
 }
 
 func (r *RegionInfo) GetSeen() map[string]*player.PlayerInfo {

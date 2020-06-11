@@ -85,7 +85,7 @@ func (rh *RegionHandler) Join() {
 	rh.BackupRegions = make(map[uint32]*RegionInfo)
 	rh.RegionHash = make(map[uint32]uint32)
 
-	
+	rh.mux.Lock()
 	go rh.Router.Heartbeat()
 	time.Sleep(time.Second * 1)
 
@@ -97,29 +97,11 @@ func (rh *RegionHandler) Join() {
 			h := getHash(regionID)
 
 			rh.RegionHash[regionID] = h
-			regionSuccessorHash := rh.Router.Successor(h)
-			successorConn := rh.Router.GetSuccessor()
-			regionClient := NewRegionClient(successorConn)
-
-			if regionSuccessorHash == rh.Router.Hash {
-				log.Println("MY REGION!")
-				newRegion := &RegionInfo{}
-				newRegion.InitRegion(i, j, rh.Router)
-				response, err := regionClient.TransferPrimary(context.Background(), &IdRegionRequest{Id: regionID})
-				if err != nil {
-					log.Println("Can't TransferPrimary: ", err)
-					continue
-				}
-				newRegion.AddFoods(response.GetFoods())
-				newRegion.SetReady()
-				go newRegion.MaintainRegion()
-				rh.mux.Lock()
-				rh.Regions[regionID] = newRegion
-				rh.mux.Unlock()
-			} 
 		}
 	}
 	rh.Router.UpdateRingPos()
+	rh.mux.Unlock()
+	log.Println("Join unlock")
 	go rh.NodeChangeHandler()
 	
 }
@@ -174,8 +156,9 @@ func (rh *RegionHandler) GetRegion(ctx context.Context, request *IdRegionRequest
 func (rh *RegionHandler) AddRegion(ctx context.Context, request *AddRegionRequest) (*EmptyResponse, error) {
 
 	regionId := request.GetId()
-	log.Println(regionId, "(",rh.Router.Successor(rh.RegionHash[regionId]),",",rh.Router.Successor(rh.Router.Successor(rh.RegionHash[regionId])+1),") addRegionRPC, this is", rh.Router.Hash)
+
 	rh.mux.RLock()
+	log.Println(regionId, "(",rh.Router.Successor(rh.RegionHash[regionId]),",",rh.Router.Successor(rh.Router.Successor(rh.RegionHash[regionId])+1),") addRegionRPC, this is", rh.Router.Hash)
 	region, ok := rh.BackupRegions[regionId]
 	rh.mux.RUnlock()
 	if !ok {
@@ -205,33 +188,21 @@ func (rh *RegionHandler) RemoveRegion(ctx context.Context, request *IdRegionRequ
 	return &response, nil
 }
 
-func (rh *RegionHandler) TransferPrimary(ctx context.Context, request *IdRegionRequest) (*GetRegionResponse, error) {
+func (rh *RegionHandler) TransferPrimary(ctx context.Context, request *FoodRequest) (*EmptyResponse, error) {
+
+	regionId := request.GetId()
 
 	rh.mux.Lock()
-
-	response := &GetRegionResponse{}
-	rid := request.GetId()
-	region, ok := rh.Regions[rid]
-	if ok {
-		response.Foods = region.GetFood()
-		response.Blobs = []*Blob{}
-		region.Quit <- true
-		region.ClearAllBlobCache()
-		rh.BackupRegions[rid] = region
-		delete(rh.Regions, rid)
-	}	else {
-		log.Println("No primary found in TransferPrimary!")
-	}
+	log.Println(regionId, "(",rh.Router.Successor(rh.RegionHash[regionId]),",",rh.Router.Successor(rh.Router.Successor(rh.RegionHash[regionId])+1),") TransferPrimaryRPC, this is", rh.Router.Hash)
+	newRegion := &RegionInfo{}
+	newRegion.InitRegion(uint32(GetRegionX(regionId)), uint32(GetRegionY(regionId)), rh.Router)
+	newRegion.AddFoods(request.GetFoods())
+	rh.Regions[regionId] = newRegion
+	newRegion.SetReady()
+	go newRegion.MaintainRegion()
 	rh.mux.Unlock()
 
-	successorConn := rh.Router.GetSuccessor()
-	regionClient := NewRegionClient(successorConn)
-	_, err := regionClient.RemoveRegion(context.Background(), &IdRegionRequest{Id: rid})
-	if err != nil {
-		log.Println("Removing from succsucccessor: ", err)
-	}
-
-	return response, nil
+	return &EmptyResponse{}, nil
 
 }
 
@@ -482,27 +453,38 @@ func (rh *RegionHandler) NodeChangeHandler() {
 			rh.mux.Unlock()
 
 			// remove region on successor for which now I'm backup
-			// regionsCopy := make(map[uint32]*RegionInfo)
-			// rh.mux.RLock()
-			// for rid, r := range rh.Regions {
-			// 	if rh.Router.Successor(rh.RegionHash[rid]) == ncInfo.Curr {
-			// 		regionsCopy[rid] = r 
-			// 	}
-			// }
-			// rh.mux.RUnlock()
+			regionsCopy := make(map[uint32]*RegionInfo)
+			rh.mux.Lock()
+			for rid, r := range rh.Regions {
+				log.Println("Checking", rid, rh.RegionHash[rid], rh.Router.Successor(rh.RegionHash[rid]), ncInfo.Curr, rh.Router.Hash)
+				if rh.Router.Successor(rh.RegionHash[rid]) == ncInfo.Curr {
+					regionsCopy[rid] = r
+					r.Quit <- true
+					r.ClearAllBlobCache()
+					rh.BackupRegions[rid] = r
+					delete(rh.Regions, rid)
+				}
+			}
+			rh.mux.Unlock()
 
-			// successorConn := rh.Router.GetSuccessor()
-			// for rid, _ := range regionsCopy {
-			// 	regionClient := NewRegionClient(successorConn)
-			// 	_, err := regionClient.RemoveRegion(context.Background(), &IdRegionRequest{Id: rid})
-			// 	if err != nil {
-			// 		log.Println("Predecessor Join big no no: ", err)
-			// 	}
-			// }
-			
 			// move regions that hash to joining node from curr node to joining node
 			// remove regions on successor that hash to joining node
-			// XXX: let the new node do these
+			successorConn  := rh.Router.GetSuccessor()
+			PredcessorConn := rh.Router.GetPredecessor()
+			for rid, r := range regionsCopy {
+				regionClient := NewRegionClient(successorConn)
+				_, err := regionClient.RemoveRegion(context.Background(), &IdRegionRequest{Id: rid})
+				if err != nil {
+					log.Println("Predecessor Join big no no: ", err)
+				}
+
+				regionClient = NewRegionClient(PredcessorConn)
+				_, err = regionClient.TransferPrimary(context.Background(), &FoodRequest{Id: rid, Foods: r.GetFood()})
+				if err != nil {
+					log.Println("Predecessor Join big no no: ", err)
+				}
+				r.UnsetReady()
+			}
 
 		} else {
 

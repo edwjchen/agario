@@ -1,5 +1,5 @@
 {
-  "MIN_PLAYERS": 4,
+  "MIN_PLAYERS": 3,
   "MAX_PLAYERS": 10,
   "ADDR"       : "localhost:8080"
 }

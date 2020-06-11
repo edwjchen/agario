@@ -4,7 +4,7 @@ import "common/common.proto";
 service Region {
   rpc Ping (EmptyRequest) returns (EmptyResponse) {}
   rpc AddRegion (AddRegionRequest) returns (EmptyResponse) {}
-  rpc TransferPrimary (IdRegionRequest) returns (GetRegionResponse) {}
+  rpc TransferPrimary (FoodRequest) returns (EmptyResponse) {}
   rpc GetRegion (IdRegionRequest) returns (GetRegionResponse) {}
   rpc RemoveRegion (IdRegionRequest) returns (EmptyResponse) {}
   rpc ClientUpdate (UpdateRegionRequest) returns (UpdateRegionResponse) {}

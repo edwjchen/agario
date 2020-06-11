@@ -3,15 +3,15 @@ package router
 //client in python <---> player server <---> region server
 
 import (
-	"hash/fnv"
-	"sync"
-	"log"
-	"time"
 	"encoding/binary"
-	"google.golang.org/grpc"
 	"golang.org/x/net/context"
+	"google.golang.org/grpc"
+	"hash/fnv"
+	"log"
 	. "peer_to_peer/server/region_pb"
 	"sort"
+	"sync"
+	"time"
 )
 
 type RegionChangeInfo struct {
@@ -212,6 +212,14 @@ func (r *Router) GetSuccessor() *grpc.ClientConn {
 	return r.conns[r.haship[successorHash]]
 }
 
+func (r *Router) GetPredecessor() *grpc.ClientConn {
+	// get whatever is after us in aliveBacks
+	predecessorHash := r.Predecessor(r.Hash)
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	return r.conns[r.haship[predecessorHash]]
+}
+
 func (r *Router) successor(h uint32) uint32 {
 
 	if len(r.liveBacks) == 1 {
@@ -257,8 +265,10 @@ func (r *Router) Predecessor(h uint32) uint32 {
 
 func (r *Router) OnSccessorChange(oldSucc, newSucc uint32) {
 
+	var newdist uint32 = newSucc - r.Hash
+	var olddist uint32 = oldSucc - r.Hash
 	log.Println("OnsuccessorChange",r.Hash, oldSucc, newSucc)
-	if IsGreaterThan(oldSucc, newSucc) {
+	if newdist < olddist {
 		r.RegionChange <- RegionChangeInfo{
 			Successor: true,
 			Join:      true,
@@ -280,11 +290,12 @@ func (r *Router) OnSccessorChange(oldSucc, newSucc uint32) {
 
 }
 
-
 func (r *Router) onPredecessorChange(oldPred, newPred uint32) {
 
+	var newdist uint32 = r.Hash - newPred
+	var olddist uint32 = r.Hash - oldPred
 	log.Println("OnPredChange",r.Hash, oldPred, newPred)
-	if IsGreaterThan(oldPred, newPred) {
+	if newdist > olddist {
 		r.RegionChange <- RegionChangeInfo{
 			Successor: false,
 			Join:      false, 
@@ -306,10 +317,9 @@ func (r *Router) onPredecessorChange(oldPred, newPred uint32) {
 
 }
 
-const halfMaxValue = 2147483648
-func IsGreaterThan(this, other uint32) bool {
-  return (((this > other) && (this - other) <= halfMaxValue) || ((other > this) && (other - this) > halfMaxValue));
-}
+//func before(seq1, seq2 uint32) bool {
+//	return int32(seq1-seq2) < 0
+//}
 
 // func (r *Router) onSuccessorJoin() {
 // 	r.lock.Lock()
