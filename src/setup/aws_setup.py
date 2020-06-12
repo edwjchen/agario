@@ -14,6 +14,8 @@ parser.add_argument('-terminate', default=0, help="Number of new instances to te
 parser.add_argument('-stats', default=False, help="Number of new instances to terminate")
 parser.add_argument('-run', default=True, help="Command to run on running instances")
 parser.add_argument('-setup', default=False, help="Setup instances")
+parser.add_argument('-hostname', default=False, help="Print all hostnames of running instances")
+parser.add_argument('-verify', default=False, help="verify setup")
 
 ec2_resource = boto3.resource('ec2',
     aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
@@ -77,6 +79,10 @@ def get_stats():
     pp = pprint.PrettyPrinter(indent=4)
     pp.pprint(stats)
 
+def get_hostnames():
+    pp = pprint.PrettyPrinter(indent=4)
+    pp.pprint([instance.public_dns_name for instance in ec2_resource.instances.filter(Filters=[{'Name': 'instance-state-name', 'Values': ['running']}])])
+
     
 def worker(ip):
     key = paramiko.RSAKey.from_private_key_file("the-key-to-her-heart.pem")
@@ -92,12 +98,30 @@ def worker(ip):
 
     # stdin, stdout, stderr = client.exec_command('')
     # stdin.flush()
-    # for line in stdout.read():
-    #     print(line)
     # if stdout.channel.recv_exit_status():
     #     print(ip, " failed setup")
     
     client.close()
+
+def verify_instance_setup():
+    running_instances = list(ec2_resource.instances.filter(Filters=[{'Name': 'instance-state-name', 'Values': ['running']}]))
+    running_instance_name = [instance.public_dns_name for instance in running_instances]
+    def verify(idx, name):
+        print(idx, " check: ", name)
+        key = paramiko.RSAKey.from_private_key_file("the-key-to-her-heart.pem")
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+        client.connect(hostname=name, username="ubuntu", pkey=key)
+        stdin, stdout, stderr = client.exec_command('cd agario/src/github.com; ls')
+        stdin.flush()
+
+        if stdout.channel.recv_exit_status():
+            print(name, " failed setup")
+    for idx, i in enumerate(running_instance_name):
+        verify(idx, i)
+
+
 
 def setup_instances(num):
     running_instances = list(ec2_resource.instances.filter(Filters=[{'Name': 'instance-state-name', 'Values': ['running']}]))
@@ -153,6 +177,12 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if bool(args.stats):
         get_stats()
+
+    if bool(args.hostname):
+        get_hostnames()
+
+    if bool(args.verify):
+        verify_instance_setup()
 
     if int(args.create):
         create_instances(int(args.create))
