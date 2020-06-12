@@ -37,7 +37,7 @@ func main() {
 		CurrNodes:  make([]string, 0),
 	}
 
-	addr = ip.GetLocalIP()
+	addr := ip.GetLocalIP()
 	listen, err := net.Listen("tcp", addr+":8080")
 	if err != nil {
 		log.Fatalf("could not listen to ", addr, err)
