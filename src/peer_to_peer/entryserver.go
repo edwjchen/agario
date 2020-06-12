@@ -1,14 +1,16 @@
 package main
 
 import (
-	"golang.org/x/net/context"
-	"google.golang.org/grpc"
 	"log"
 	"net"
 	"os"
 	"peer_to_peer/common"
 	. "peer_to_peer/entryserver"
 	"peer_to_peer/info"
+	"peer_to_peer/ip"
+
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
 	// "math"
 )
 
@@ -35,9 +37,10 @@ func main() {
 		CurrNodes:  make([]string, 0),
 	}
 
-	listen, err := net.Listen("tcp", esConfig.ADDR)
+	addr = ip.GetLocalIP()
+	listen, err := net.Listen("tcp", addr+":8080")
 	if err != nil {
-		log.Fatalf("could not listen to ", esConfig.ADDR, err)
+		log.Fatalf("could not listen to ", addr, err)
 	}
 	log.Println("Server starting...")
 	log.Fatal(grpcServer.Serve(listen))

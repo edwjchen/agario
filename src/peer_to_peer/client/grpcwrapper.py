@@ -10,12 +10,12 @@ import sys
 PLAYER_SERVER_PORT = '3000'
 
 class GRPCWrapper:
-    def __init__(self, IP, run):
+    def __init__(self, IP):
         self.port = '3000'
         self.ip = IP + ':' + self.port
         self.channel = grpc.insecure_channel(self.ip)
         self.stub = player_pb2_grpc.PlayerStub(self.channel)
-        self.log_file_name = "./logs/" + str(run) + "=" + self.ip +".json"
+        self.log_file_name = "./logs/" + self.ip + "_" +  str(time.time()) +".json"
         self.region_rtts = []
         self.move_rtts = []
 
@@ -25,7 +25,7 @@ class GRPCWrapper:
         rtt_data = {}
         rtt_data["region"] = self.region_rtts
         rtt_data["move"] = self.move_rtts
-        with open(self.log_file_name, "w+") as f:
+        with open(self.log_file_name, "w") as f:
             json.dump(rtt_data, f, indent=2)
         sys.exit(0)
 

@@ -6,3 +6,8 @@ src/golang.org
 
 bin/
 pkg/
+.DS_Store
+*.png
+.vscode
+*.ipynb
+.ipynb_checkpoints

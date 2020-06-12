@@ -11,13 +11,13 @@ import time
 import signal
 import sys
 
-RUN = sys.argv[1]
+# RUN = sys.argv[1]
 # BOT = bool(sys.argv[2])
 IP = ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
 
 BOT = True
 print("Connecting on ip:", IP)
-grpc_wrapper = GRPCWrapper(IP, RUN)
+grpc_wrapper = GRPCWrapper(IP)
 signal.signal(signal.SIGINT, grpc_wrapper.flush)
 
 pygame.init()

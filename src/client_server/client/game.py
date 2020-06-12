@@ -11,10 +11,9 @@ import signal
 import sys
 
 IP = sys.argv[1]
-RUN = sys.argv[2]
 BOT = True
 
-grpc_wrapper = GRPCWrapper(IP, RUN)
+grpc_wrapper = GRPCWrapper(IP)
 signal.signal(signal.SIGINT, grpc_wrapper.flush)
 
 pygame.init()
