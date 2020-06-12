@@ -232,7 +232,11 @@ def start_single_p2p_client(dns_name):
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
     client.connect(hostname=dns_name, username="ubuntu", pkey=key)
-    stdin, stdout, stderr = client.exec_command('cd agario/src/peer_to_peer/client; python3 game.py')
+    stdin, stdout, stderr = client.exec_command('export SDL_VIDEODRIVER=dummy; cd agario/src/peer_to_peer/client; python3 game.py')
+    # for line in iter(stdout.readline, ""):
+    #     print(line, end="")
+    # for line in iter(stderr.readline, ""):
+    #     print(line, end="")
 
     stdin.flush()
 
