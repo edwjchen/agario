@@ -115,7 +115,7 @@ def setup_experiment(server_num):
     cg.generate_config()
 
     commit_msg = "Config update for " + EXPERIMENT_NAME
-    subprocess.call('git commit -am "'+commit_msg+'"; git push', shell=True)
+    subprocess.call('git add ../peer_to_peer/common/*.json; git commit -m "'+commit_msg+'"; git push', shell=True)
     time.sleep(1)
 
     refresh_instances()
@@ -239,9 +239,14 @@ def start_entry():
     stdin, stdout, stderr = client.exec_command('export GOPATH=/home/ubuntu/agario; /usr/local/go/bin/go run agario/src/peer_to_peer/entryserver.go')
     stdin.flush()
 
-    # if stdout.channel.recv_exit_status():
-        # print(ENTRY_NAME, " failed to start entryserver")
-    time.sleep(2)
+    time.sleep(5)
+
+    _, stdout, _ = client.exec_command('lsof -i :8080')
+    if stdout.channel.recv_exit_status():
+        print(ENTRY_NAME, "failed to start entryserver")
+    else:
+        print(ENTRY_NAME, "successfully started entryserver")
+
     client.close()
 
 # type is name of process either ['client', 'entry', 'server']
