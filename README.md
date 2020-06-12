@@ -1,5 +1,7 @@
 # agario
 
+This project is great :))))))))
+
 ## Add repository to GOPATH
 
 export GOPATH=<path_to_repo>
