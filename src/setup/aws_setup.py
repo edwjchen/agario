@@ -100,7 +100,7 @@ def setup_experiment(num_servers):
     global ENTRY_NAME
     global SERVER_NAMES
     running_instances = list(ec2_resource.instances.filter(Filters=[{'Name': 'instance-state-name', 'Values': ['running']}]))
-    if (num_servers > len(running_instances)):
+    if (num_servers > len(running_instances) - 1):
         print("RUN STUFF PROPERLY")
         return
 
@@ -122,7 +122,7 @@ def setup_experiment(num_servers):
     refresh_instances()
     start_entry()
     start_servers(num_servers)
-    time.sleep()
+    time.sleep(5)
     start_all_clients()
 
 def get_hostnames():
@@ -209,6 +209,20 @@ def start_single_server(dns_name):
     stdin, stdout, stderr = client.exec_command('export GOPATH=/home/ubuntu/agario; /usr/local/go/bin/go run agario/src/peer_to_peer/main.go')
     stdin.flush()
 
+    time.sleep(5) 
+
+    _, stdout, _ = client.exec_command('lsof -i :3000')
+    if stdout.channel.recv_exit_status():
+        print(ENTRY_NAME, "failed to start server")
+    else:
+        print(ENTRY_NAME, "successfully started server")
+
+    # for line in iter(stdout.readline, ""):
+    #     print(line, end="")
+    # for line in iter(stderr.readline, ""):
+    #     print(line, end="")
+    print("Successfully started server on", dns_name)
+
     client.close()
 
 def start_single_p2p_client(dns_name):
@@ -219,6 +233,7 @@ def start_single_p2p_client(dns_name):
 
     client.connect(hostname=dns_name, username="ubuntu", pkey=key)
     stdin, stdout, stderr = client.exec_command('cd agario/src/peer_to_peer/client; python3 game.py')
+
     stdin.flush()
 
     client.close()
@@ -242,7 +257,9 @@ def start_servers(num):
     servers_to_start = list(servers_available)[:num]
 
     SERVER_NAMES = list(server_name_set - set(servers_to_start))
+    RUNNING_SERVER_NAMES.extend(servers_to_start)
 
+    
     pool = multiprocessing.Pool(num)
     pool.map(start_single_server, servers_to_start)
 
@@ -297,6 +314,8 @@ def start_entry():
     client.connect(hostname=ENTRY_NAME, username="ubuntu", pkey=key)
     stdin, stdout, stderr = client.exec_command('export GOPATH=/home/ubuntu/agario; /usr/local/go/bin/go run agario/src/peer_to_peer/entryserver.go')
     stdin.flush()
+    # for line in iter(stderr.readline, ""):
+    #     print(line, end="")
 
     time.sleep(5)
 
@@ -423,6 +442,8 @@ if __name__ == '__main__':
             start_entry()
         elif cmd_type == "kill_entry":
             killall(ENTRY_NAME, 'entry')
+        elif cmd_type == "teardown":
+            teardown()
         # elif cmd_type == "start_servers": # starts some number of player servers
         #     num_to_start = int(cmds[1])
         #     start_servers(num_to_start)
@@ -438,29 +459,3 @@ if __name__ == '__main__':
         else:
             print("GIT GUD")
         # elif cmd_type == "start_entry":
-
-# if __name__ == '__main__':
-#     args = parser.parse_args()
-#     if bool(args.stats):
-#         get_stats()
-
-#     if bool(args.hostname):
-#         get_hostnames()
-
-#     if bool(args.verify):
-#         verify_instance_setup()
-
-#     if int(args.create):
-#         create_instances(int(args.create))
-
-#     if int(args.start):
-#         start_instances(int(args.start))
-
-#     if int(args.stop):
-#         stop_instances(int(args.stop))
-
-#     if int(args.terminate):
-#         terminate_instances(int(args.terminate))
-
-#     if int(args.setup):
-#         setup_instances(int(args.setup))
