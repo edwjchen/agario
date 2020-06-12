@@ -3,10 +3,10 @@ package region;
 import "common/common.proto";
 service Region {
   rpc Ping (EmptyRequest) returns (EmptyResponse) {}
-  rpc AddRegion (AddRegionRequest) returns (EmptyResponse) {}
-  rpc TransferPrimary (FoodRequest) returns (EmptyResponse) {}
+  rpc AddRegions (AddRegionsRequest) returns (EmptyResponse) {}
+  rpc TransferPrimary (AddRegionsRequest) returns (EmptyResponse) {}
   rpc GetRegion (IdRegionRequest) returns (GetRegionResponse) {}
-  rpc RemoveRegion (IdRegionRequest) returns (EmptyResponse) {}
+  rpc RemoveRegions (RemoveRegionsRequest) returns (EmptyResponse) {}
   rpc ClientUpdate (UpdateRegionRequest) returns (UpdateRegionResponse) {}
   rpc AddFoods (FoodRequest) returns (EmptyResponse) {}
   rpc RemoveFoods (FoodRequest) returns (EmptyResponse) {}
@@ -14,9 +14,12 @@ service Region {
 message EmptyRequest {}
 message EmptyResponse {}
 
-message AddRegionRequest {
-  uint32 id = 1;
-  repeated common.Food foods = 2;
+message AddRegionsRequest {
+  repeated FoodRequest regions = 1;
+}
+
+message RemoveRegionsRequest {
+  repeated IdRegionRequest regions = 1;
 }
 
 message IdRegionRequest {
