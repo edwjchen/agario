@@ -13,7 +13,7 @@ parser.add_argument('-stop', default=0, help="Number of new instances to stop")
 parser.add_argument('-terminate', default=0, help="Number of new instances to terminate")
 parser.add_argument('-stats', default=False, help="Number of new instances to terminate")
 parser.add_argument('-run', default=True, help="Command to run on running instances")
-parser.add_argument('-setup', default=True, help="Setup instances")
+parser.add_argument('-setup', default=False, help="Setup instances")
 
 ec2_resource = boto3.resource('ec2',
     aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
@@ -151,6 +151,9 @@ def setup_instances(num):
 
 if __name__ == '__main__':
     args = parser.parse_args()
+    if bool(args.stats):
+        get_stats()
+
     if int(args.create):
         create_instances(int(args.create))
 
@@ -166,8 +169,6 @@ if __name__ == '__main__':
     if int(args.setup):
         setup_instances(int(args.setup))
 
-    if bool(args.stats):
-        get_stats()
 
     
 
