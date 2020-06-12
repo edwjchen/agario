@@ -63,7 +63,7 @@ func (r *RegionInfo) MaintainRegion() {
 		<-time.Tick(time.Second)
 		select {
 		case <-r.Quit:
-			log.Println(r.hash, "QUIT!")
+			// log.Println(r.hash, "QUIT!")
 			return
 		default:
 			r.blobCacheClear()
@@ -144,7 +144,7 @@ func (r *RegionInfo) spawnFood() {
 		regionClient := region_pb.NewRegionClient(conn)
 		_, err := regionClient.AddFoods(context.Background(), &region_pb.FoodRequest{Id: getRegionID(r.x, r.y), Foods: newFoods})
 		if err != nil {
-			log.Println("AddFood big no no: ", err)
+			// log.Println("AddFood big no no: ", err)
 		}
 	}
 
@@ -193,7 +193,7 @@ func (r *RegionInfo) GetNumFoodsEaten(blob *Blob) int32 {
 		regionClient := region_pb.NewRegionClient(conn)
 		_, err := regionClient.RemoveFoods(context.Background(), &region_pb.FoodRequest{Id: getRegionID(r.x, r.y), Foods: foodEaten})
 		if err != nil {
-			log.Println("RemoveFoods big no no: ", err)
+			// log.Println("RemoveFoods big no no: ", err)
 		}
 	}
 

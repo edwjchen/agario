@@ -65,14 +65,14 @@ func (r *Router) Init(servers []string, ownAddr string) {
 
 // this heartbeat function runs as a bg goroutine
 func (r *Router) Heartbeat() {
-	log.Println("Beating my heart")
+	// log.Println("Beating my heart")
 	// log.Println(r.conns)
 	retChan := make(chan heartbeatOutput, len(r.conns))
 	ping := func(ip string, cxn *grpc.ClientConn) {
 		if cxn == nil {
 			conn, err := grpc.Dial(ip, grpc.WithInsecure())
 			if err != nil {
-				log.Println("Failed dail", err)
+				// log.Println("Failed dail", err)
 				retChan <- heartbeatOutput{
 					ip:   ip,
 					conn: nil,
@@ -185,7 +185,7 @@ func (r *Router) GetPlayerConn(addr string) *grpc.ClientConn {
 	if !ok {
 		conn, err := grpc.Dial(addr, grpc.WithInsecure())
 		if err != nil {
-			log.Println("Failed dail", err)
+			// log.Println("Failed dail", err)
 			return nil
 		} else {
 			cxn = conn
@@ -267,7 +267,7 @@ func (r *Router) OnSccessorChange(oldSucc, newSucc uint32) {
 
 	var newdist uint32 = newSucc - r.Hash
 	var olddist uint32 = oldSucc - r.Hash
-	log.Println("OnsuccessorChange",r.Hash, oldSucc, newSucc)
+	// log.Println("OnsuccessorChange",r.Hash, oldSucc, newSucc)
 	if newdist < olddist {
 		r.RegionChange <- RegionChangeInfo{
 			Successor: true,
@@ -294,7 +294,7 @@ func (r *Router) onPredecessorChange(oldPred, newPred uint32) {
 
 	var newdist uint32 = r.Hash - newPred
 	var olddist uint32 = r.Hash - oldPred
-	log.Println("OnPredChange",r.Hash, oldPred, newPred)
+	// log.Println("OnPredChange",r.Hash, oldPred, newPred)
 	if newdist > olddist {
 		r.RegionChange <- RegionChangeInfo{
 			Successor: false,
