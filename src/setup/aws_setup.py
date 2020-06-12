@@ -8,8 +8,9 @@ import argparse
 import pprint
 import multiprocessing
 import paramiko
+import subprocess
 import sys
-from src.setup.config_generator import ConfigGenerator
+from config_generator import ConfigGenerator
 
 parser = argparse.ArgumentParser(description="This program autocreates, starts, and stop Amazon EC2 Instancess.")
 parser.add_argument('-create', default=0, help="Number of new instances to create")
@@ -91,6 +92,7 @@ def wait_start(num_servers):
         print(len(running_instances), "servers are up.")
         if len(running_instances) >= num_servers:
             break
+        time.sleep(1)
 
 # generates config and setups which servers to run
 def setup_experiment(server_num):
@@ -112,10 +114,15 @@ def setup_experiment(server_num):
     cg = ConfigGenerator(server_private_ips, entry_private_ip)
     cg.generate_config()
 
+    commit_msg = "Config update for " + EXPERIMENT_NAME
+    subprocess.call('git commit -am "'+commit_msg+'"; git push', shell=True)
+    time.sleep(1)
+
+    refresh_instances()
+
 def get_hostnames():
     pp = pprint.PrettyPrinter(indent=4)
     pp.pprint([instance.public_dns_name for instance in ec2_resource.instances.filter(Filters=[{'Name': 'instance-state-name', 'Values': ['running']}])])
-
 
 def worker(ip):
     key = paramiko.RSAKey.from_private_key_file("the-key-to-her-heart.pem")
@@ -180,6 +187,7 @@ def refresh(name):
 
 
 def refresh_instances():
+    print("Commencing instance refresh")
     running_instances = list(ec2_resource.instances.filter(Filters=[{'Name': 'instance-state-name', 'Values': ['running']}]))
     running_instance_ips = [instance.public_dns_name for instance in running_instances]
     pool = multiprocessing.Pool(len(running_instance_ips))
@@ -298,6 +306,9 @@ if __name__ == '__main__':
         sys.exit(0)
 
     EXPERIMENT_NAME = sys.argv[1]
+    # YES I KNOW makedirs EXISTS BUT WE GOT NO TIME TO FIGURE OUT HOW TO USE IT THANKS - Godwin '20
+    if not os.path.exists('../data'):
+        os.mkdir('../data')
     if not os.path.exists('../data/'+EXPERIMENT_NAME):
         os.mkdir('../data/'+EXPERIMENT_NAME)
 
@@ -336,12 +347,14 @@ if __name__ == '__main__':
             terminate_instances(int(cmds[1]))
         elif cmd_type == "setup":
             setup_instances(int(cmds[1]))
+        elif cmd_type == "setup_experiment":
+            setup_experiment(int(cmds[1]))
         elif cmd_type == "wait":
             time.sleep(int(cmds[1]))
         elif cmd_type == "refresh":
             refresh_instances()
         elif cmd_type == "wait_start":
-            wait_start()
+            wait_start(int(cmds[1]))
         elif cmd_type == "start_entry":
             start_entry()
         elif cmd_type == "kill_entry":
