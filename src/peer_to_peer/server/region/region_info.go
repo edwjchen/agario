@@ -2,7 +2,7 @@ package region
 
 import (
 	"golang.org/x/net/context"
-	"log"
+	//"log"
 	"math"
 	"math/rand"
 	. "peer_to_peer/common"

@@ -7,7 +7,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"hash/fnv"
-	"log"
+	//"log"
 	. "peer_to_peer/server/region_pb"
 	"sort"
 	"sync"
