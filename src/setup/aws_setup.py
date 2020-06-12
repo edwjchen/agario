@@ -473,6 +473,8 @@ if __name__ == '__main__':
         #     start_servers(num_to_start)
         # elif cmd_type == "start_clients": # starts clients on ALL nodes that are running servers
         #     pass
+        elif cmd_type == "start_server_client":
+            start_single_server_client()
         elif cmd_type == "kill_server_client": # kills single server
             stop_server_client(1)
             pass
