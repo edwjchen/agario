@@ -209,21 +209,20 @@ def start_single_server(dns_name):
     stdin, stdout, stderr = client.exec_command('export GOPATH=/home/ubuntu/agario; /usr/local/go/bin/go run agario/src/peer_to_peer/main.go')
     stdin.flush()
 
-    time.sleep(5) 
+    time.sleep(5)
 
     _, stdout, _ = client.exec_command('lsof -i :3000')
     if stdout.channel.recv_exit_status():
-        print(ENTRY_NAME, "failed to start server")
+        print(dns_name, "failed to start server\n")
     else:
-        print(ENTRY_NAME, "successfully started server")
+        print(dns_name, "successfully started server\n")
 
     # for line in iter(stdout.readline, ""):
     #     print(line, end="")
     # for line in iter(stderr.readline, ""):
     #     print(line, end="")
-    print("Successfully started server on", dns_name)
 
-    client.close()
+    # client.close()
 
 def start_single_p2p_client(dns_name):
     print("Starting single p2p client on", dns_name)
@@ -240,7 +239,7 @@ def start_single_p2p_client(dns_name):
 
     stdin.flush()
 
-    client.close()
+    # client.close()
 
 def _stop_single_server_client(dns_name):
     killall(dns_name, 'client')
@@ -251,25 +250,27 @@ def start_servers(num):
     global SERVER_NAMES
     global RUNNING_SERVER_NAMES
     # TODO add filtering here to not start on servers already running servers
+    print("\n-------- Starting", num, "servers----------")
     server_name_set = set(SERVER_NAMES)
     running_server_set = set(RUNNING_SERVER_NAMES)
 
     servers_available = server_name_set - running_server_set
     if len(servers_available) < num:
         print("not enough servers available")
-    
+
     servers_to_start = list(servers_available)[:num]
 
-    SERVER_NAMES = list(server_name_set - set(servers_to_start))
+    # SERVER_NAMES = list(server_name_set - set(servers_to_start))
     RUNNING_SERVER_NAMES.extend(servers_to_start)
 
-    
+
     pool = multiprocessing.Pool(num)
     pool.map(start_single_server, servers_to_start)
 
 # ONLY RUN THIS ON EXPERIMENT START
 def start_all_clients():
     global RUNNING_SERVER_NAMES
+    print('\n----------- Starting Clients--------------')
     pool = multiprocessing.Pool(len(RUNNING_SERVER_NAMES))
     pool.map(start_single_p2p_client, RUNNING_SERVER_NAMES)
 
@@ -279,7 +280,7 @@ def stop_server_client(num):
 
     if len(RUNNING_SERVER_NAMES) < num:
         print("don't stop so many man")
-    
+
     servers_to_stop = RUNNING_SERVER_NAMES[:num]
     RUNNING_SERVER_NAMES = RUNNING_SERVER_NAMES[num:]
 
@@ -289,23 +290,53 @@ def stop_server_client(num):
 def start_single_server_client():
     global RUNNING_SERVER_NAMES
     global SERVER_NAMES
-    
+
     can_start = set(SERVER_NAMES) - set(RUNNING_SERVER_NAMES)
     if not len(can_start):
         print("no nodes available to start on!")
-    
+
     node_to_start_name = list(can_start)[0]
     RUNNING_SERVER_NAMES.append(node_to_start_name)
     start_single_server(node_to_start_name)
     time.sleep(2)
     start_single_p2p_client(node_to_start_name)
 
+def get_logs(dns_name):
+    global EXPERIMENT_NAME
+    print('scp logs from', dns_name)
+    subprocess.call("scp -o StrictHostKeyChecking=no -i the-key-to-her-heart.pem ubuntu@"+dns_name+":~/agario/src/peer_to_peer/client/logs/\* ../data/experiment_"+EXPERIMENT_NAME, shell=True)
+
+    key = paramiko.RSAKey.from_private_key_file("the-key-to-her-heart.pem")
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    client.connect(hostname=dns_name, username="ubuntu", pkey=key)
+    stdin, stdout, stderr = client.exec_command('rm -rf agario/src/peer_to_peer/client/logs/*')
+    stdin.flush()
+
+    # for line in iter(stderr.readline, ""):
+        # print(line, end="")
+
+    if stdout.channel.recv_exit_status():
+        print(dns_name, " failed to delete files.")
+    client.close()
+
 def teardown():
     # kill everything and run scp
+    global SERVER_NAMES
+    global RUNNING_SERVER_NAMES
+    global EXPERIMENT_NAME
+    global ENTRY_NAME
     print("I kill processes, not instances!")
+    killall(ENTRY_NAME, 'entry')
+
     stop_server_client(len(RUNNING_SERVER_NAMES))
+    time.sleep(5)
     # TODO scp
-    pass
+    if not os.path.exists('../data/experiment_{}'.format(EXPERIMENT_NAME)):
+        os.mkdir('../data/experiment_{}'.format(EXPERIMENT_NAME))
+    pool = multiprocessing.Pool(len(SERVER_NAMES))
+    pool.map(get_logs, SERVER_NAMES)
 
 def start_entry():
     global ENTRY_NAME
@@ -329,7 +360,7 @@ def start_entry():
     else:
         print(ENTRY_NAME, "successfully started entryserver")
 
-    client.close()
+    # client.close()
 
 # type is name of process either ['client', 'entry', 'server']
 def killall(dns_name, ptype):
@@ -338,8 +369,8 @@ def killall(dns_name, ptype):
     elif ptype == 'server':
         cmd = "killall -2 main"
     else:
-        cmd = "killall -2 Python"
-    
+        cmd = "killall -2 python3"
+
     print("Killing", ptype, "on", dns_name)
 
     key = paramiko.RSAKey.from_private_key_file("the-key-to-her-heart.pem")
@@ -348,27 +379,16 @@ def killall(dns_name, ptype):
 
     client.connect(hostname=dns_name, username="ubuntu", pkey=key)
     stdin, stdout, stderr = client.exec_command(cmd)
+
     stdin.flush()
     time.sleep(2)
- 
+
     if stdout.channel.recv_exit_status():
         print(dns_name, "failed to kill")
     else:
         print("Killed", ptype, "successfully")
     client.close()
 
-def get_logs(dns_name):
-    key = paramiko.RSAKey.from_private_key_file("the-key-to-her-heart.pem")
-    client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-    client.connect(hostname=dns_name, username="ubuntu", pkey=key)
-    stdin, stdout, stderr = client.exec_command('scp agario/src/peer_to_peer/client/logs/* ../data/experiment_{}; rm -rf agario/src/peer_to_peer/client/logs/*'.format(EXPERIMENT_NAME))
-    stdin.flush()
-    time.sleep(5)
-    if stdout.channel.recv_exit_status():
-        print(dns_name, " failed to scp")
-    client.close()
 
 # instance_ids = []
 
@@ -397,8 +417,8 @@ if __name__ == '__main__':
     # YES I KNOW makedirs EXISTS BUT WE GOT NO TIME TO FIGURE OUT HOW TO USE IT THANKS - Godwin '20
     if not os.path.exists('../data'):
         os.mkdir('../data')
-    if not os.path.exists('../data/'+EXPERIMENT_NAME):
-        os.mkdir('../data/'+EXPERIMENT_NAME)
+    if not os.path.exists('../data/experiment_'+EXPERIMENT_NAME):
+        os.mkdir('../data/experiment_'+EXPERIMENT_NAME)
 
     print("Welcome to the agar.io experimental CLI.")
     print("You are running experiment " + EXPERIMENT_NAME)
