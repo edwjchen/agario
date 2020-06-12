@@ -37,7 +37,7 @@ type Config struct {
 }
 
 type EntryServerConfig struct {
-	ADDR        string
+	// ADDR        string
 	MIN_PLAYERS uint32
 	MAX_PLAYERS uint32
 	// MAP_LENGTH  int32

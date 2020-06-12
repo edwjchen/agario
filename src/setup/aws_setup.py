@@ -1,3 +1,6 @@
+# run wait_start then
+# run setup first, then run refresh to update all nodes with the new config file
+
 import boto3
 import os
 import time
@@ -6,6 +9,7 @@ import pprint
 import multiprocessing
 import paramiko
 import sys
+from src.setup.config_generator import ConfigGenerator
 
 parser = argparse.ArgumentParser(description="This program autocreates, starts, and stop Amazon EC2 Instancess.")
 parser.add_argument('-create', default=0, help="Number of new instances to create")
@@ -19,9 +23,8 @@ parser.add_argument('-hostname', default=False, help="Print all hostnames of run
 parser.add_argument('-verify', default=False, help="verify setup")
 
 ENTRY_NAME = ""
+SERVER_NAMES = []
 EXPERIMENT_NAME= ""
-
-SERVERS_RUNNING = [] # list of dns names
 
 ec2_resource = boto3.resource('ec2',
     aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
@@ -80,6 +83,34 @@ def get_stats():
     stats['stopping'] = len(list(ec2_resource.instances.filter(Filters=[{'Name': 'instance-state-name', 'Values': ['stopping']}])))
     pp = pprint.PrettyPrinter(indent=4)
     pp.pprint(stats)
+
+# waits for n servers to start
+def wait_start(num_servers):
+    while True:
+        running_instances = list(ec2_resource.instances.filter(Filters=[{'Name': 'instance-state-name', 'Values': ['running']}]))
+        print(len(running_instances), "servers are up.")
+        if len(running_instances) >= num_servers:
+            break
+
+# generates config and setups which servers to run
+def setup_experiment(server_num):
+    global ENTRY_NAME
+    global SERVER_NAMES
+    running_instances = list(ec2_resource.instances.filter(Filters=[{'Name': 'instance-state-name', 'Values': ['running']}]))
+    if (server_num > len(running_instances)):
+        print("RUN STUFF PROPERLY")
+        return
+
+    entry_instance = running_instances.pop()
+    ENTRY_NAME = entry_instance.public_dns_name
+    entry_private_ip = entry_instance.private_ip_address
+
+    server_instances = running_instances
+    SERVER_NAMES = [instance.public_dns_name for instance in server_instances]
+    server_private_ips = [instance.private_ip_address for instance in server_instances]
+
+    cg = ConfigGenerator(server_private_ips, entry_private_ip)
+    cg.generate_config()
 
 def get_hostnames():
     pp = pprint.PrettyPrinter(indent=4)
@@ -144,7 +175,7 @@ def refresh(name):
     stdin.flush()
 
     if stdout.channel.recv_exit_status():
-        print(ip, " failed clone")
+        print(name, " failed clone")
     client.close()
 
 
@@ -154,14 +185,42 @@ def refresh_instances():
     pool = multiprocessing.Pool(len(running_instance_ips))
     pool.map(refresh, running_instance_ips)
 
-def start_entry():
+def start_single_server(dns_name):
+    print("Starting single server on", dns_name)
+
+    key = paramiko.RSAKey.from_private_key_file("the-key-to-her-heart.pem")
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    client.connect(hostname=dns_name, username="ubuntu", pkey=key)
+    stdin, stdout, stderr = client.exec_command('export GOPATH=/home/ubuntu/agario; /usr/local/go/bin/go run agario/src/peer_to_peer/main.go')
+    stdin.flush()
+
+    client.close()
+
+def start_servers(num):
     global ENTRY_NAME
     running_instances = list(ec2_resource.instances.filter(Filters=[{'Name': 'instance-state-name', 'Values': ['running']}]))
-    if not len(running_instances):
-        print("!!Error!!: No instances currently running!")
+    if len(running_instances) - 1 < num:
+        print("!!Error!!: Need at least", num+1, "instances running!")
+        return
 
-    entry_instance = running_instances[0]
-    ENTRY_NAME = entry_instance.public_dns_name
+    if ENTRY_NAME == "":
+        print("!!Error!!: Start entry first!")
+        return
+
+    running_instances_names = [instance.public_dns_name for instance in running_instances]
+    try:
+        running_instances_names.remove(ENTRY_NAME)
+    except:
+        print("!!Error!!: COME ON MAN")
+    
+    # TODO add filtering here to not start on servers already running servers
+    pool = multiprocessing.Pool(num)
+    pool.map(start_single_server, running_instances_names[:num])
+
+def start_entry():
+    global ENTRY_NAME
 
     key = paramiko.RSAKey.from_private_key_file("the-key-to-her-heart.pem")
     client = paramiko.SSHClient()
@@ -260,7 +319,7 @@ if __name__ == '__main__':
             print("stats hostnames verify create start stop")
             print("terminate setup wait start_entry kill_entry")
             print("start_servers start_clients kill_server_client")
-            print("data refresh")
+            print("data refresh wait_start")
         elif cmd_type == "stats":
             get_stats()
         elif cmd_type == "hostnames":
@@ -281,10 +340,11 @@ if __name__ == '__main__':
             time.sleep(int(cmds[1]))
         elif cmd_type == "refresh":
             refresh_instances()
+        elif cmd_type == "wait_start":
+            wait_start()
         elif cmd_type == "start_entry":
             start_entry()
         elif cmd_type == "kill_entry":
-            print(ENTRY_NAME)
             killall(ENTRY_NAME, 'entry')
         elif cmd_type == "start_servers": # starts some number of player servers
             num_to_start = int(cmds[1])
