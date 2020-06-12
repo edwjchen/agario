@@ -122,7 +122,7 @@ func (rh *RegionHandler) GetRegion(ctx context.Context, request *IdRegionRequest
 		rh.mux.RUnlock()
 		if !ok {
 			log.Println(GetRegionX(regionId), GetRegionY(regionId), "NOT IN PRIMARY NOR BACKUP!")
-			return &GetRegionResponse{Blobs: []*Blob{}, Foods: []*Food{}}, nil
+			return &GetRegionResponse{Blobs: []*Blob{}, Foods: []*Food{}, Ready: false}, nil
 		}
 	}
 
@@ -260,7 +260,7 @@ func (rh *RegionHandler) ClientUpdate(ctx context.Context, request *UpdateRegion
 		rh.mux.RUnlock()
 		if !ok {
 			log.Println(GetRegionX(regionId), GetRegionY(regionId), "NOT IN PRIMARY NOR BACKUP!")
-			return &UpdateRegionResponse{DeltaMass: 0, Alive: false}, nil
+			return &UpdateRegionResponse{DeltaMass: 0, Alive: false, Ready: false}, nil
 		}
 	}
 
@@ -327,9 +327,9 @@ func (rh *RegionHandler) ClientUpdate(ctx context.Context, request *UpdateRegion
 		return &UpdateRegionResponse{DeltaMass: 0, Alive: true, Ready: regionReady}, nil
 	}
 
-	if !regionReady {
-		return &UpdateRegionResponse{DeltaMass: 0, Alive: true, Ready: regionReady}, nil
-	}
+	//if !regionReady {
+	//	return &UpdateRegionResponse{DeltaMass: 0, Alive: true, Ready: regionReady}, nil
+	//}
 
 	var massIncrease int32
 
@@ -353,7 +353,7 @@ func (rh *RegionHandler) ClientUpdate(ctx context.Context, request *UpdateRegion
 				}
 			}
 			log.Println("DEAD!!!")
-			return &UpdateRegionResponse{DeltaMass: 0, Alive: false, Ready: true}, nil
+			return &UpdateRegionResponse{DeltaMass: 0, Alive: false, Ready: regionReady}, nil
 		}
 	} else {
 		massIncrease = region.GetNumFoodsEaten(updatedBlob)

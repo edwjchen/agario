@@ -181,9 +181,9 @@ class Blob:
         else:
             dX,dY = pygame.mouse.get_pos()
         moveResponse = grpc_wrapper.move(self.name, dX, dY)
-        # print("Move response: ", moveResponse)
+        print("Move response: ", moveResponse)
 
-        # print("end pos: ", moveResponse.x, moveResponse.y)
+        print("end pos: ", moveResponse.x, moveResponse.y)
         self.x = moveResponse.x
         self.y = moveResponse.y
 
@@ -287,7 +287,7 @@ while(True):
     camera.zoom = ZOOM_CONSTANT/d+0.3
 
     camera.center(blob)
-    # print(blob.x, blob.y)
+    print(blob.x, blob.y)
     surface.fill((242,251,255))
     draw_grid()
 
