@@ -238,6 +238,10 @@ def start_entry():
     client.connect(hostname=ENTRY_NAME, username="ubuntu", pkey=key)
     stdin, stdout, stderr = client.exec_command('export GOPATH=/home/ubuntu/agario; /usr/local/go/bin/go run agario/src/peer_to_peer/entryserver.go')
     stdin.flush()
+    for line in iter(stdout.readline, ""):
+        print(line, end="")
+    for line in iter(stderr.readline, ""):
+        print(line, end="")
     # if stdout.channel.recv_exit_status():
         # print(ENTRY_NAME, " failed to start entryserver")
     time.sleep(2)
