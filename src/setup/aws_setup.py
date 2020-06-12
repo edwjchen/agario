@@ -27,6 +27,8 @@ ENTRY_NAME = ""
 SERVER_NAMES = []
 EXPERIMENT_NAME= ""
 
+RUNNING_SERVER_NAMES = []
+
 ec2_resource = boto3.resource('ec2',
     aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
     aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'],
@@ -94,11 +96,11 @@ def wait_start(num_servers):
         time.sleep(1)
 
 # generates config and setups which servers to run
-def setup_experiment(server_num):
+def setup_experiment(num_servers):
     global ENTRY_NAME
     global SERVER_NAMES
     running_instances = list(ec2_resource.instances.filter(Filters=[{'Name': 'instance-state-name', 'Values': ['running']}]))
-    if (server_num > len(running_instances)):
+    if (num_servers > len(running_instances)):
         print("RUN STUFF PROPERLY")
         return
 
@@ -114,10 +116,14 @@ def setup_experiment(server_num):
     cg.generate_config()
 
     commit_msg = "Config update for " + EXPERIMENT_NAME
-    subprocess.call('git restore --staged ../../../; git add ../peer_to_peer/common/*.json; git commit -m "'+commit_msg+'"; git push', shell=True)
+    subprocess.call('git restore --staged ../../; git add ../peer_to_peer/common/*.json; git commit -m "'+commit_msg+'"; git push', shell=True)
     time.sleep(1)
 
     refresh_instances()
+    start_entry()
+    start_servers(num_servers)
+    time.sleep()
+    start_all_clients()
 
 def get_hostnames():
     pp = pprint.PrettyPrinter(indent=4)
@@ -205,26 +211,80 @@ def start_single_server(dns_name):
 
     client.close()
 
+def start_single_p2p_client(dns_name):
+    print("Starting single p2p client on", dns_name)
+    key = paramiko.RSAKey.from_private_key_file("the-key-to-her-heart.pem")
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    client.connect(hostname=dns_name, username="ubuntu", pkey=key)
+    stdin, stdout, stderr = client.exec_command('cd agario/src/peer_to_peer/client; python3 game.py')
+    stdin.flush()
+
+    client.close()
+
+def _stop_single_server_client(dns_name):
+    killall(dns_name, 'client')
+    time.sleep(5)
+    killall(dns_name, 'server')
+
 def start_servers(num):
-    global ENTRY_NAME
-    running_instances = list(ec2_resource.instances.filter(Filters=[{'Name': 'instance-state-name', 'Values': ['running']}]))
-    if len(running_instances) - 1 < num:
-        print("!!Error!!: Need at least", num+1, "instances running!")
-        return
-
-    if ENTRY_NAME == "":
-        print("!!Error!!: Start entry first!")
-        return
-
-    running_instances_names = [instance.public_dns_name for instance in running_instances]
-    try:
-        running_instances_names.remove(ENTRY_NAME)
-    except:
-        print("!!Error!!: COME ON MAN")
-    
+    global SERVER_NAMES
+    global RUNNING_SERVER_NAMES
     # TODO add filtering here to not start on servers already running servers
+    server_name_set = set(SERVER_NAMES)
+    running_server_set = set(RUNNING_SERVER_NAMES)
+
+    servers_available = server_name_set - running_server_set
+    if len(servers_available) < num:
+        print("not enough servers available")
+    
+    servers_to_start = list(servers_available)[:num]
+
+    SERVER_NAMES = list(server_name_set - set(servers_to_start))
+
     pool = multiprocessing.Pool(num)
-    pool.map(start_single_server, running_instances_names[:num])
+    pool.map(start_single_server, servers_to_start)
+
+# ONLY RUN THIS ON EXPERIMENT START
+def start_all_clients():
+    global RUNNING_SERVER_NAMES
+    pool = multiprocessing.Pool(len(RUNNING_SERVER_NAMES))
+    pool.map(start_single_p2p_client, RUNNING_SERVER_NAMES)
+
+def stop_server_client(num):
+    global RUNNING_SERVER_NAMES
+    global SERVER_NAMES
+
+    if len(RUNNING_SERVER_NAMES) < num:
+        print("don't stop so many man")
+    
+    servers_to_stop = RUNNING_SERVER_NAMES[:num]
+    RUNNING_SERVER_NAMES = RUNNING_SERVER_NAMES[num:]
+
+    pool = multiprocessing.Pool(num)
+    pool.map(_stop_single_server_client, servers_to_stop)
+
+def start_single_server_client():
+    global RUNNING_SERVER_NAMES
+    global SERVER_NAMES
+    
+    can_start = set(SERVER_NAMES) - set(RUNNING_SERVER_NAMES)
+    if not len(can_start):
+        print("no nodes available to start on!")
+    
+    node_to_start_name = list(can_start)[0]
+    RUNNING_SERVER_NAMES.append(node_to_start_name)
+    start_single_server(node_to_start_name)
+    time.sleep(2)
+    start_single_p2p_client(node_to_start_name)
+
+def teardown():
+    # kill everything and run scp
+    print("I kill processes, not instances!")
+    stop_server_client(len(RUNNING_SERVER_NAMES))
+    # TODO scp
+    pass
 
 def start_entry():
     global ENTRY_NAME
@@ -280,7 +340,7 @@ def get_logs(dns_name):
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
     client.connect(hostname=dns_name, username="ubuntu", pkey=key)
-    stdin, stdout, stderr = client.exec_command('scp agario/src/peer_to_peer/client/logs/* ../data/experiment_{};'.format(EXPERIMENT_NAME))
+    stdin, stdout, stderr = client.exec_command('scp agario/src/peer_to_peer/client/logs/* ../data/experiment_{}; rm -rf agario/src/peer_to_peer/client/logs/*'.format(EXPERIMENT_NAME))
     stdin.flush()
     time.sleep(5)
     if stdout.channel.recv_exit_status():
@@ -334,8 +394,7 @@ if __name__ == '__main__':
             print("Not again... oh well here you go\n")
             print("stats hostnames verify create start stop")
             print("terminate setup wait start_entry kill_entry")
-            print("start_servers start_clients kill_server_client")
-            print("data refresh wait_start")
+            print("data refresh wait_start setup_experiment")
         elif cmd_type == "stats":
             get_stats()
         elif cmd_type == "hostnames":
@@ -364,13 +423,13 @@ if __name__ == '__main__':
             start_entry()
         elif cmd_type == "kill_entry":
             killall(ENTRY_NAME, 'entry')
-        elif cmd_type == "start_servers": # starts some number of player servers
-            num_to_start = int(cmds[1])
-            pass
-        elif cmd_type == "start_clients": # starts clients on some number of servers that are already running player servers
-            pass
-        elif cmd_type == "kill_server_client": # kills some number of player servers along with their clients
-            num_to_kill = int(cmds[1])
+        # elif cmd_type == "start_servers": # starts some number of player servers
+        #     num_to_start = int(cmds[1])
+        #     start_servers(num_to_start)
+        # elif cmd_type == "start_clients": # starts clients on ALL nodes that are running servers
+        #     pass
+        elif cmd_type == "kill_server_client": # kills single server
+            stop_server_client(1)
             pass
         elif cmd_type == "data": # run scp on all servers that are running
             pass
