@@ -59,11 +59,10 @@ def stop_instances(num):
     num = min(num, len(running_instances))
     for i in range(num):
         instance = running_instances[i]
-        print('Stopping ', instance.public_dns_name)
+        print('Stopping', instance.public_dns_name)
         ec2_resource.instances.filter(InstanceIds=[instance.id]).stop()
         count += 1
     print("Stopped {} instances".format(count))
-
 
 def terminate_instances(num):
     instances = list(ec2_resource.instances.filter(Filters=[{'Name': 'instance-state-name', 'Values': ['running', 'stopped']}]))
@@ -115,7 +114,7 @@ def setup_experiment(server_num):
     cg.generate_config()
 
     commit_msg = "Config update for " + EXPERIMENT_NAME
-    subprocess.call('git add ../peer_to_peer/common/*.json; git commit -m "'+commit_msg+'"; git push', shell=True)
+    subprocess.call('git restore --staged ../../../; git add ../peer_to_peer/common/*.json; git commit -m "'+commit_msg+'"; git push', shell=True)
     time.sleep(1)
 
     refresh_instances()
@@ -258,7 +257,7 @@ def killall(dns_name, ptype):
     else:
         cmd = "killall -2 Python"
     
-    print("Killing ", ptype, " on ", dns_name)
+    print("Killing", ptype, "on", dns_name)
 
     key = paramiko.RSAKey.from_private_key_file("the-key-to-her-heart.pem")
     client = paramiko.SSHClient()
