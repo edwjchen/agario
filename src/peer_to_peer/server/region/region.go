@@ -131,9 +131,9 @@ func (rh *RegionHandler) GetRegion(ctx context.Context, request *IdRegionRequest
 	// if !regionReady {
 	// 	return &GetRegionResponse{Blobs: []*Blob{}, Foods: []*Food{}}, nil
 	// }
-
+	pseen := region.GetSeen()
 	allPlayers := make(map[string]*Blob)
-	for name, p := range region.GetSeen() {
+	for name, p := range pseen {
 		allPlayers[name] = p.GetBlob()
 	}
 

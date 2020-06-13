@@ -25,7 +25,7 @@ type RegionInfo struct {
 	readyMux    sync.Mutex
 	Router      *router.Router
 	Ready         bool
-	PlayerSeenMux sync.Mutex
+	PlayerSeenMux sync.RWMutex
 	x             uint16
 	y             uint16
 	xmin          float64
@@ -107,8 +107,8 @@ func (r *RegionInfo) UnsetReady() {
 }
 
 func (r *RegionInfo) GetSeen() map[string]*player.PlayerInfo {
-	r.PlayerSeenMux.Lock()
-	defer r.PlayerSeenMux.Unlock()
+	r.PlayerSeenMux.RLock()
+	defer r.PlayerSeenMux.RUnlock()
 	copy := make(map[string]*player.PlayerInfo)
 	for k, v := range r.PlayersSeen {
 		copy[k] = v
