@@ -65,7 +65,7 @@ func (rh *RegionHandler) Init() {
 				// log.Println("I'M BACKUP!")
 				newRegion := &RegionInfo{}
 				newRegion.InitRegion(i, j, rh.Router)
-
+				newRegion.SetReady()
 				// go newRegion.MaintainRegion()
 				rh.BackupRegions[regionID] = newRegion
 			} else {
@@ -155,7 +155,7 @@ func (rh *RegionHandler) GetRegion(ctx context.Context, request *IdRegionRequest
 
 func (rh *RegionHandler) AddRegions(ctx context.Context, request *AddRegionsRequest) (*EmptyResponse, error) {
 
-	rh.doAddRegions(request.GetRegions())
+	go rh.doAddRegions(request.GetRegions())
 	// regionId := request.GetId()
 
 	// rh.mux.RLock()
@@ -193,6 +193,7 @@ func (rh *RegionHandler) doAddRegions(regions []*FoodRequest) {
 			newRegion := &RegionInfo{}
 			newRegion.InitRegion(uint32(GetRegionX(regionId)), uint32(GetRegionY(regionId)), rh.Router)
 			newRegion.AddFoods(request.GetFoods())
+			newRegion.SetReady()
 			rh.BackupRegions[regionId] = newRegion
 			rh.mux.Unlock()
 		} else {
@@ -216,7 +217,7 @@ func (rh *RegionHandler) RemoveRegions(ctx context.Context, request *RemoveRegio
 
 func (rh *RegionHandler) TransferPrimary(ctx context.Context, request *AddRegionsRequest) (*EmptyResponse, error) {
 
-	rh.doTransferPrimary(request.GetRegions())
+	go rh.doTransferPrimary(request.GetRegions())
 	// regionId := request.GetId()
 
 	// rh.mux.Lock()

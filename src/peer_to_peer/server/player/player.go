@@ -63,6 +63,9 @@ func doClientUpdate(regionId uint32, c chan *UpdateRegionResponse, blob *Blob, r
 				response = responsebk
 			} 
 		}
+	} else {
+		regionClient = NewRegionClient(backup)
+		go regionClient.ClientUpdate(context.Background(), &clientUpdate)
 	}
 	//log.Println(regionId, blob, "back:", response)
 
