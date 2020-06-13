@@ -19,7 +19,7 @@ type FoodInfo struct {
 	//map of regions, each region contains a map of food
 	//region points will be the top left corner == 0,0 for 1st region
 	regionMap map[Point]map[Point]bool 
-	mux      sync.Mutex
+	mux      sync.RWMutex
 }
 
 func (f *FoodInfo) InitFood() {
@@ -106,8 +106,8 @@ func (f *FoodInfo) GetNumFoodsEaten(player *blob.Player) int32 {
 	// Delegate to removeFood
 	// Get rectangular bound around player
 
-	f.mux.Lock()
-	defer f.mux.Unlock()
+	f.mux.RLock()
+	defer f.mux.RUnlock()
 	radius := GetRadiusFromMass(player.Mass)
 	regionPoints := GetAOI(player)
 
@@ -131,8 +131,8 @@ func (f *FoodInfo) GetNumFoodsEaten(player *blob.Player) int32 {
 }
 
 func (f *FoodInfo) GetFoods(player *blob.Player) []*blob.Food {
-	f.mux.Lock()
-	defer f.mux.Unlock()
+	f.mux.RLock()
+	defer f.mux.RUnlock()
 
 	regionPoints := GetAOI(player)
 	foodSlice := make([]*blob.Food, 0)

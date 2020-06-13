@@ -28,7 +28,7 @@ type BlobsInfo struct {
 
 	blobsMap map[string]*blob.Player
 
-	mux sync.Mutex
+	mux sync.RWMutex
 }
 
 func (b *BlobsInfo) InitBlobs() {
@@ -105,8 +105,8 @@ func (b *BlobsInfo) UpdatePos(name string, dx float64, dy float64) (float64, flo
 }
 
 func (b *BlobsInfo) GetBlobs(blobId string, foodInfo *FoodInfo) []*blob.Player {
-	b.mux.Lock()
-	defer b.mux.Unlock()
+	b.mux.RLock()
+	defer b.mux.RUnlock()
 	retBlobs := make([]*blob.Player, 0)
 	// log.Println("Printing blobs")
 
@@ -124,8 +124,8 @@ func (b *BlobsInfo) GetBlobs(blobId string, foodInfo *FoodInfo) []*blob.Player {
 }
 
 func (b *BlobsInfo) GetPlayer(blobId string) *blob.Player {
-	b.mux.Lock()
-	defer b.mux.Unlock()
+	b.mux.RLock()
+	defer b.mux.RUnlock()
 	// log.Println("Printing blobs")
 
 	currBlob := b.blobsMap[blobId]
@@ -180,8 +180,8 @@ func (b *BlobsInfo) EatBlobs(blobId string) {
 }
 
 func (b *BlobsInfo) IsBlobAlive(id string) bool {
-	b.mux.Lock()
-	defer b.mux.Unlock()
+	b.mux.RLock()
+	defer b.mux.RUnlock()
 
 	return b.blobsMap[id].Alive
 }
