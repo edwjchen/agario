@@ -12,6 +12,9 @@ class GRPCWrapper:
         self.ip = IP
         self.channel = grpc.insecure_channel(IP)
         self.stub = blob_pb2_grpc.BlobStub(self.channel)
+
+        if not os.path.exists("./logs"):
+            os.mkdir("./logs")
         self.log_file_name = "./logs/" + self.ip + "_" + str(time.time()) + ".json"
         self.region_rtts = []
         self.move_rtts = []
