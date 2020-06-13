@@ -128,9 +128,9 @@ func (rh *RegionHandler) GetRegion(ctx context.Context, request *IdRegionRequest
 
 	regionReady := region.GetReady()
 
-	if !regionReady {
-		return &GetRegionResponse{Blobs: []*Blob{}, Foods: []*Food{}}, nil
-	}
+	// if !regionReady {
+	// 	return &GetRegionResponse{Blobs: []*Blob{}, Foods: []*Food{}}, nil
+	// }
 
 	allPlayers := make(map[string]*Blob)
 	for name, p := range region.GetSeen() {
@@ -148,14 +148,14 @@ func (rh *RegionHandler) GetRegion(ctx context.Context, request *IdRegionRequest
 	response := GetRegionResponse{
 		Blobs: blobs,
 		Foods: region.GetFood(),
-		Ready: true,
+		Ready: regionReady,
 	}
 	return &response, nil
 }
 
 func (rh *RegionHandler) AddRegions(ctx context.Context, request *AddRegionsRequest) (*EmptyResponse, error) {
 
-	go rh.doAddRegions(request.GetRegions())
+	rh.doAddRegions(request.GetRegions())
 	// regionId := request.GetId()
 
 	// rh.mux.RLock()
@@ -216,7 +216,7 @@ func (rh *RegionHandler) RemoveRegions(ctx context.Context, request *RemoveRegio
 
 func (rh *RegionHandler) TransferPrimary(ctx context.Context, request *AddRegionsRequest) (*EmptyResponse, error) {
 
-	go rh.doTransferPrimary(request.GetRegions())
+	rh.doTransferPrimary(request.GetRegions())
 	// regionId := request.GetId()
 
 	// rh.mux.Lock()
