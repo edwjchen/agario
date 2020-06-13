@@ -38,11 +38,6 @@ ec2_resource = boto3.resource('ec2',
     aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'],
     region_name='us-west-1')
 
-hack_ec2 = boto3.resource('ec2',
-    aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID_1'],
-    aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY_1'],
-    region_name='us-west-1')
-
 def create_instances(num):
     instance = ec2_resource.create_instances(ImageId='ami-0318e6f2445586bd7',
         InstanceType='t2.micro',
@@ -408,6 +403,7 @@ def mono_teardown():
     global MONO_CLIENT_NAMES
     pool = multiprocessing.Pool(len(MONO_CLIENT_NAMES))
     pool.map(kill_single_mono_client, MONO_CLIENT_NAMES)
+    time.sleep(10)
 
     killall(MONO_SERVER_NAME, 'server')
     pool = multiprocessing.Pool(len(MONO_CLIENT_NAMES))
@@ -441,10 +437,8 @@ def start_entry():
     client.connect(hostname=ENTRY_NAME, username="ubuntu", pkey=key)
     stdin, stdout, stderr = client.exec_command('export GOPATH=/home/ubuntu/agario; /usr/local/go/bin/go run agario/src/peer_to_peer/entryserver.go')
     stdin.flush()
-    # for line in iter(stderr.readline, ""):
-    #     print(line, end="")
 
-    time.sleep(5)
+    time.sleep(10)
 
     _, stdout, _ = client.exec_command('lsof -i :8080')
     if stdout.channel.recv_exit_status():
