@@ -28,8 +28,8 @@ func (p *PlayerInfo) NewBlob() (string, float64, float64, int32, int32) {
 	// p.mux.Lock()
 	// defer p.mux.Unlock()
 
-	var x float64 = 400.0
-	var y float64 = 200.0
+	var x float64 = float64(rand.Intn(9999))
+	var y float64 = float64(rand.Intn(9999))
 
 	var ver int
 	verBytes, err := ioutil.ReadFile(Conf.VER_FILE)
