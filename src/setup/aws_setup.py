@@ -122,7 +122,7 @@ def setup_experiment(num_servers):
     refresh_instances()
     start_entry()
     start_servers(num_servers)
-    time.sleep(20)
+    time.sleep(10)
     start_all_clients()
 
 def get_hostnames():
@@ -243,7 +243,7 @@ def start_single_p2p_client(dns_name):
 
 def _stop_single_server_client(dns_name):
     killall(dns_name, 'client')
-    time.sleep(20)
+    time.sleep(5)
     killall(dns_name, 'server')
 
 def start_servers(num):
