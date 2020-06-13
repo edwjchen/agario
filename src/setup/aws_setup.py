@@ -38,6 +38,11 @@ ec2_resource = boto3.resource('ec2',
     aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'],
     region_name='us-west-1')
 
+hack_ec2 = boto3.resource('ec2',
+    aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID_1'],
+    aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY_1'],
+    region_name='us-west-1')
+
 def create_instances(num):
     instance = ec2_resource.create_instances(ImageId='ami-0318e6f2445586bd7',
         InstanceType='t2.micro',
@@ -173,8 +178,9 @@ def setup_experiment(num_servers):
 
     refresh_instances()
     start_entry()
-    start_servers(num_servers)
     time.sleep(10)
+    start_servers(num_servers)
+    time.sleep(20)
     start_all_clients()
 
 def get_hostnames():
