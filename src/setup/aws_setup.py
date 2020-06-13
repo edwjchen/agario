@@ -12,16 +12,16 @@ import subprocess
 import sys
 from config_generator import ConfigGenerator
 
-parser = argparse.ArgumentParser(description="This program autocreates, starts, and stop Amazon EC2 Instancess.")
-parser.add_argument('-create', default=0, help="Number of new instances to create")
-parser.add_argument('-start', default=0, help="Number of new instances to start")
-parser.add_argument('-stop', default=0, help="Number of new instances to stop")
-parser.add_argument('-terminate', default=0, help="Number of new instances to terminate")
-parser.add_argument('-stats', default=False, help="Number of new instances to terminate")
-parser.add_argument('-run', default=True, help="Command to run on running instances")
-parser.add_argument('-setup', default=False, help="Setup instances")
-parser.add_argument('-hostname', default=False, help="Print all hostnames of running instances")
-parser.add_argument('-verify', default=False, help="verify setup")
+# parser = argparse.ArgumentParser(description="This program autocreates, starts, and stop Amazon EC2 Instancess.")
+# parser.add_argument('-create', default=0, help="Number of new instances to create")
+# parser.add_argument('-start', default=0, help="Number of new instances to start")
+# parser.add_argument('-stop', default=0, help="Number of new instances to stop")
+# parser.add_argument('-terminate', default=0, help="Number of new instances to terminate")
+# parser.add_argument('-stats', default=False, help="Number of new instances to terminate")
+# parser.add_argument('-run', default=True, help="Command to run on running instances")
+# parser.add_argument('-setup', default=False, help="Setup instances")
+# parser.add_argument('-hostname', default=False, help="Print all hostnames of running instances")
+# parser.add_argument('-verify', default=False, help="verify setup")
 
 ENTRY_NAME = ""
 SERVER_NAMES = []
@@ -130,6 +130,7 @@ def get_hostnames():
     pp.pprint([instance.public_dns_name for instance in ec2_resource.instances.filter(Filters=[{'Name': 'instance-state-name', 'Values': ['running']}])])
 
 def worker(ip):
+    print("setting up", ip)
     key = paramiko.RSAKey.from_private_key_file("the-key-to-her-heart.pem")
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
