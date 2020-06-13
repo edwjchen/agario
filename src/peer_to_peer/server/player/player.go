@@ -55,16 +55,15 @@ func doClientUpdate(regionId uint32, c chan *UpdateRegionResponse, blob *Blob, r
 		} else {
 			log.Fatalln(regionId, "only has one associated node and is down!")
 		}
-	} 
-	// else if !response.GetReady() {
-	// 	if primary != backup {
-	// 		regionClient = NewRegionClient(backup)
-	// 		responsebk, err := regionClient.ClientUpdate(context.Background(), &clientUpdate)
-	// 		if err == nil && responsebk.GetReady() {
-	// 			response = responsebk
-	// 		} 
-	// 	}
-	// }
+	} else if !response.GetReady() {
+		if primary != backup {
+			regionClient = NewRegionClient(backup)
+			responsebk, err := regionClient.ClientUpdate(context.Background(), &clientUpdate)
+			if err == nil && responsebk.GetReady() {
+				response = responsebk
+			} 
+		}
+	}
 	//log.Println(regionId, blob, "back:", response)
 
 	// call method on goroutine
@@ -185,16 +184,15 @@ func doRegionUpdate(regionId uint32, c chan *GetRegionResponse, r *router.Router
 		} else {
 			log.Fatalln(regionId, "only has one associated node and is down!")
 		}
-	} 
-	// else if !response.GetReady() {
-	// 	if primary != backup {
-	// 		regionClient = NewRegionClient(backup)
-	// 		responsebk, err := regionClient.GetRegion(context.Background(), &getRegionRequest)
-	// 		if err == nil && responsebk.GetReady() {
-	// 			response = responsebk
-	// 		} 
-	// 	}
-	// }
+	} else if !response.GetReady() {
+		if primary != backup {
+			regionClient = NewRegionClient(backup)
+			responsebk, err := regionClient.GetRegion(context.Background(), &getRegionRequest)
+			if err == nil && responsebk.GetReady() {
+				response = responsebk
+			} 
+		}
+	}
 
 	c <- response
 }

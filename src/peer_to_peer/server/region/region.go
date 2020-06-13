@@ -527,7 +527,7 @@ func (rh *RegionHandler) NodeChangeHandler() {
 					r.ClearAllBlobCache()
 					rh.BackupRegions[rid] = r
 					delete(rh.Regions, rid)
-					r.UnsetReady()
+					// r.UnsetReady()
 				}
 			}
 			rh.mux.Unlock()
@@ -572,9 +572,9 @@ func (rh *RegionHandler) NodeChangeHandler() {
 
 			rh.mux.Lock()
 			for rid, r := range rh.BackupRegions {
-				log.Println("Checking", rid, rh.RegionHash[rid])
+				// log.Println("Checking", rid, rh.RegionHash[rid])
 				if rh.Router.Successor(rh.RegionHash[rid]) == rh.Router.Hash {
-					log.Println("Moving", rid, "from bkup to prim")
+					// log.Println("Moving", rid, "from bkup to prim")
 					regionsCopy = append(regionsCopy, &FoodRequest{Id: rid, Foods:r.GetFood()})
 					//regionsCopy[rid] = r
 					rh.Regions[rid] = r
