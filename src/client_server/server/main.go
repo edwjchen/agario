@@ -8,6 +8,7 @@ import (
 	"net"
 
 	// "net/http"
+	"client_server/ip"
 	"client_server/server/info"
 	"math"
 	"time"
@@ -27,12 +28,14 @@ var foodInfo info.FoodInfo
 var blobsInfo info.BlobsInfo
 
 func main() {
+	myAddr := ip.GetLocalIP()
+
 	grpcServer := grpc.NewServer()
 	var server Server
 	blob.RegisterBlobServer(grpcServer, server)
 	blobsInfo.InitBlobs()
 	foodInfo.InitFood()
-	listen, err := net.Listen("tcp", "0.0.0.0:3000")
+	listen, err := net.Listen("tcp", myAddr+":3000")
 	if err != nil {
 		log.Fatalf("could not listen to 0.0.0.0:3000 %v", err)
 	}
