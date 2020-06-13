@@ -27,6 +27,10 @@ ENTRY_NAME = ""
 SERVER_NAMES = []
 EXPERIMENT_NAME= ""
 
+MONO_SERVER_NAME = ""
+MONO_CLIENT_NAMES = []
+MONO_PRIVATE_IP = ""
+
 RUNNING_SERVER_NAMES = []
 
 ec2_resource = boto3.resource('ec2',
@@ -94,6 +98,54 @@ def wait_start(num_servers):
         if len(running_instances) >= num_servers:
             break
         time.sleep(1)
+
+def start_mono_server():
+    global MONO_SERVER_NAME
+    print("starting server")
+    key = paramiko.RSAKey.from_private_key_file("the-key-to-her-heart.pem")
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    client.connect(hostname=MONO_SERVER_NAME, username="ubuntu", pkey=key)
+    stdin, stdout, stderr = client.exec_command('export GOPATH=/home/ubuntu/agario; /usr/local/go/bin/go run agario/src/client_server/server/main.go')
+    stdin.flush()
+    # for line in iter(stderr.readline, ""):
+        # print(line, end="")
+
+def start_mono_client(dns_name):
+    global MONO_PRIVATE_IP
+    print("starting client on", dns_name)
+    key = paramiko.RSAKey.from_private_key_file("the-key-to-her-heart.pem")
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    client.connect(hostname=dns_name, username="ubuntu", pkey=key)
+    stdin, stdout, stderr = client.exec_command('export SDL_VIDEODRIVER=dummy; cd agario/src/client_server/client; python3 game.py '+MONO_PRIVATE_IP+":3000")
+    stdin.flush()
+
+def setup_mono_experiment(num_players):
+    global MONO_SERVER_NAME
+    global MONO_PRIVATE_IP
+    global MONO_CLIENT_NAMES
+    running_instances = list(ec2_resource.instances.filter(Filters=[{'Name': 'instance-state-name', 'Values': ['running']}]))
+    if (num_players > len(running_instances) - 1):
+        print("START STUFF FIRST AHHHHHHHHHHHH")
+        return
+
+    server_instance = running_instances.pop()
+    MONO_SERVER_NAME = server_instance.public_dns_name
+    MONO_PRIVATE_IP = server_instance.private_ip_address
+
+    client_instances = running_instances
+    MONO_CLIENT_NAMES = [instance.public_dns_name for instance in client_instances]
+    MONO_CLIENT_NAMES = MONO_CLIENT_NAMES[:num_players]
+
+    # refresh_instances()
+    start_mono_server()
+    time.sleep(5)
+
+    pool = multiprocessing.Pool(len(MONO_CLIENT_NAMES))
+    pool.map(start_mono_client, MONO_CLIENT_NAMES)
 
 # generates config and setups which servers to run
 def setup_experiment(num_servers):
@@ -322,6 +374,39 @@ def get_logs(dns_name):
         print(dns_name, " failed to delete files.")
     client.close()
 
+def get_mono_logs(dns_name):
+    global EXPERIMENT_NAME
+    print('scp logs from', dns_name)
+    subprocess.call("scp -o StrictHostKeyChecking=no -i the-key-to-her-heart.pem ubuntu@"+dns_name+":~/agario/src/client_server/client/logs/\* ../data/experiment_"+EXPERIMENT_NAME, shell=True)
+
+    key = paramiko.RSAKey.from_private_key_file("the-key-to-her-heart.pem")
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    client.connect(hostname=dns_name, username="ubuntu", pkey=key)
+    stdin, stdout, stderr = client.exec_command('rm -rf agario/src/client_server/client/logs/*')
+    stdin.flush()
+
+    # for line in iter(stderr.readline, ""):
+        # print(line, end="")
+
+    if stdout.channel.recv_exit_status():
+        print(dns_name, " failed to delete files.")
+    client.close()
+
+def kill_single_mono_client(dns_name):
+    killall(dns_name, 'client')
+
+def mono_teardown():
+    global MONO_SERVER_NAME
+    global MONO_CLIENT_NAMES
+    pool = multiprocessing.Pool(len(MONO_CLIENT_NAMES))
+    pool.map(kill_single_mono_client, MONO_CLIENT_NAMES)
+
+    killall(MONO_SERVER_NAME, 'server')
+    pool = multiprocessing.Pool(len(MONO_CLIENT_NAMES))
+    pool.map(get_mono_logs, MONO_CLIENT_NAMES)
+
 def teardown():
     # kill everything and run scp
     global SERVER_NAMES
@@ -457,6 +542,10 @@ if __name__ == '__main__':
             setup_instances(int(cmds[1]))
         elif cmd_type == "setup_experiment":
             setup_experiment(int(cmds[1]))
+        elif cmd_type == "setup_mono":
+            setup_mono_experiment(int(cmds[1]))
+        elif cmd_type == "teardown_mono":
+            mono_teardown()
         elif cmd_type == "wait":
             time.sleep(int(cmds[1]))
         elif cmd_type == "refresh":
