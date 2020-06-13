@@ -220,10 +220,10 @@ func GetAOI(player *blob.Player) []Point {
 	bot_right_x := player.X + float64(SCREEN_WIDTH)/zoom_factor/2
 	bot_right_y := player.Y + float64(SCREEN_HEIGHT)/zoom_factor/2
 	//figure out which of the regions are in AOI
-	start_region_x := float64(max(0, int32(math.Floor(top_left_x/float64(REGION_MAP_WIDTH)-1))))
-	start_region_y := float64(max(0, int32(math.Floor(top_left_y/float64(REGION_MAP_HEIGHT)-1))))
-	end_region_x := float64(min(int32(math.Ceil(bot_right_x/float64(REGION_MAP_WIDTH)+1)), int32(NREGION_WIDTH-1)))
-	end_region_y := float64(min(int32(math.Ceil(bot_right_y/float64(REGION_MAP_HEIGHT)+1)), int32(NREGION_HEIGHT-1)))
+	start_region_x := float64(max(0, int32(math.Floor(top_left_x/float64(REGION_MAP_WIDTH)))))
+	start_region_y := float64(max(0, int32(math.Floor(top_left_y/float64(REGION_MAP_HEIGHT)))))
+	end_region_x := float64(min(int32(math.Ceil(bot_right_x/float64(REGION_MAP_WIDTH))), int32(NREGION_WIDTH-1)))
+	end_region_y := float64(min(int32(math.Ceil(bot_right_y/float64(REGION_MAP_HEIGHT))), int32(NREGION_HEIGHT-1)))
 
 	regionPoints := make([]Point, 0)
 
