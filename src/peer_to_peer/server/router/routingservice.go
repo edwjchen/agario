@@ -6,7 +6,7 @@ import (
 	"encoding/binary"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"hash/fnv"
+	"hash/crc32"
 	//"log"
 	. "peer_to_peer/server/region_pb"
 	"sort"
@@ -51,7 +51,7 @@ func (r *Router) Init(servers []string, ownAddr string) {
 	r.conns = make(map[string] *grpc.ClientConn)
 	r.playerConns = make(map[string] *grpc.ClientConn)
 	for _, ip := range(servers) {
-		hasher := fnv.New32a()
+		hasher := crc32.NewIEEE()
 		hasher.Write([]byte(ip))
 		hash := uint32(hasher.Sum32())
 		r.iphash[ip] = hash 
@@ -163,7 +163,7 @@ func (r *Router) UpdateRingPos() {
 // Returns GRPC connection
 func (r *Router) Get(key uint32) (*grpc.ClientConn, *grpc.ClientConn) {
 	// return grpc connection of head of chain
-	hasher := fnv.New32a()
+	hasher := crc32.NewIEEE()
 	b := make([]byte, 4)
 	binary.LittleEndian.PutUint32(b, key)
 	hasher.Write(b)

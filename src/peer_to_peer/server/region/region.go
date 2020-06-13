@@ -4,7 +4,7 @@ import (
 	"golang.org/x/net/context"
 	// "github.com/paulmach/orb/quadtree"
 	"encoding/binary"
-	"hash/fnv"
+	"hash/crc32"
 	"log"
 	. "peer_to_peer/common"
 	. "peer_to_peer/server/player"
@@ -25,7 +25,7 @@ type RegionHandler struct {
 }
 
 func getHash(id uint32) uint32 {
-	hasher := fnv.New32a()
+	hasher := crc32.NewIEEE()
 	b := make([]byte, 4)
 	binary.LittleEndian.PutUint32(b, id)
 	hasher.Write(b)
