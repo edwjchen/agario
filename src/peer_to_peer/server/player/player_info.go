@@ -137,10 +137,10 @@ func (p *PlayerInfo) GetAOI() []uint32 {
 	bot_right_x := p.Blob.X + float64(Conf.SCREEN_WIDTH)/zoom_factor/2
 	bot_right_y := p.Blob.Y + float64(Conf.SCREEN_HEIGHT)/zoom_factor/2
 	//figure out which of the regions are in AOI
-	start_region_x := max(0, int32(math.Floor(top_left_x/float64(Conf.REGION_MAP_WIDTH)-1)))
-	start_region_y := max(0, int32(math.Floor(top_left_y/float64(Conf.REGION_MAP_HEIGHT)-1)))
-	end_region_x := min(int32(math.Ceil(bot_right_x/float64(Conf.REGION_MAP_WIDTH)+1)), int32(Conf.NREGION_WIDTH-1))
-	end_region_y := min(int32(math.Ceil(bot_right_y/float64(Conf.REGION_MAP_HEIGHT)+1)), int32(Conf.NREGION_HEIGHT-1))
+	start_region_x := max(0, int32(math.Floor(top_left_x/float64(Conf.REGION_MAP_WIDTH))))
+	start_region_y := max(0, int32(math.Floor(top_left_y/float64(Conf.REGION_MAP_HEIGHT))))
+	end_region_x := min(int32(math.Ceil(bot_right_x/float64(Conf.REGION_MAP_WIDTH))), int32(Conf.NREGION_WIDTH-1))
+	end_region_y := min(int32(math.Ceil(bot_right_y/float64(Conf.REGION_MAP_HEIGHT))), int32(Conf.NREGION_HEIGHT-1))
 
 	regionIds := make([]uint32, 0)
 	// log.Println("start & end x", start_region_x, end_region_x)
