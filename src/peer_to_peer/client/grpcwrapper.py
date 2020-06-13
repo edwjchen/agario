@@ -13,8 +13,6 @@ PLAYER_SERVER_PORT = '3000'
 
 class GRPCWrapper:
     def __init__(self, IP):
-        if os.path.exists('./logs'):
-            subprocess.run('rm -f ./logs/*', shell=True)
         self.port = '3000'
         self.ip = IP + ':' + self.port
         self.channel = grpc.insecure_channel(self.ip)
