@@ -1,0 +1,4 @@
+setup_mono 30
+wait 180
+teardown_mono
+quit
