@@ -4,6 +4,7 @@ import blob_pb2
 import blob_pb2_grpc
 from grpcwrapper import GRPCWrapper
 
+import os
 import pygame,random,math
 import asyncio
 import time
@@ -114,7 +115,7 @@ class Blob:
                     self.next_y = closest_player.y - self.y
                 elif val == -1 and min_dist < SAFETY_RANGE + get_diameter(closest_player.mass)/2:
                     #move away
-                    self.next_x = self.x - closest_player.x 
+                    self.next_x = self.x - closest_player.x
                     self.next_y = self.y - closest_player.y
                 else:
                     #move towards food
@@ -165,7 +166,7 @@ class Blob:
     def move(self):
         self.move_count += 1
         if self.move_count >= 1000:
-            self.move_count = 0 
+            self.move_count = 0
 
         if BOT:
             dX, dY = self.next_x, self.next_y

@@ -3,6 +3,7 @@ import blob_pb2
 import blob_pb2_grpc
 
 from collections import Counter
+import os
 import time
 import json
 import sys
@@ -28,7 +29,7 @@ class GRPCWrapper:
         with open(self.log_file_name, "w") as f:
             json.dump(rtt_data, f, indent=2)
         sys.exit(0)
-    
+
     def respawn(self):
         self.channel.close()
         time.sleep(5)
@@ -64,5 +65,5 @@ class GRPCWrapper:
         runtime = end - start
         self.move_rtts.append(runtime)
         return moveResponse
-  
-    
+
+
